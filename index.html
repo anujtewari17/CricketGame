@@ -58,6 +58,12 @@ body::before{
   transition:color .2s,border-color .2s;
 }
 #new-match-btn:hover{color:white;border-color:rgba(255,255,255,.4);}
+#audio-btn{
+  font-size:.8rem;padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.15);
+  background:transparent;color:rgba(255,255,255,.5);cursor:pointer;transition:color .2s,border-color .2s,opacity .2s;
+}
+#audio-btn:hover{color:white;border-color:rgba(255,255,255,.4);}
+#audio-btn.muted{opacity:.3;}
 
 /* ── SCOREBOARD ── */
 #scoreboard{
@@ -351,6 +357,7 @@ body::before{
   <div id="header">
     <div id="title">Cricket</div>
     <div id="phase-banner" class="batting">1st Inn · You Bat</div>
+    <button id="audio-btn" onclick="toggleAudio()">🔊</button>
     <button id="new-match-btn" onclick="initGame()">New</button>
   </div>
 
@@ -738,6 +745,7 @@ function playShot(shot){
       // Wide — +1 run, ball not counted
       pRuns+=1;
       $('comm-text').textContent=`${pOver}.${pBall} · ${bt.label} · WIDE — ball strays off`;
+      sfxWhistle(false);speak('Wide ball! One extra run.');
       addExtraChip('Wd');
       updateDisplay(pRuns,pWkts,pOver,pBall);
       updateRunRate();
@@ -752,6 +760,7 @@ function playShot(shot){
       $('freehit-badge').classList.add('show');
       addExtraChip('Nb');
       $('comm-text').textContent=`${pOver}.${pBall} · ${bt.label} · NO BALL! Free hit incoming!`;
+      sfxWhistle(true);setTimeout(()=>{speak('No ball! Free hit!');sfxFanfare();},200);
       // Continue to play the shot but with freehit=true
       executePlayerShot(shot,bt);
       return;
@@ -782,8 +791,10 @@ function applyBatOutcome(outcome,shotName,bt){
   pBall++;
   if(outcome==='W'){pWkts++;resetForm();}
   else{pRuns+=outcome;addFormXP(outcome);if(outcome>=4)flashField(bt.id);}
-  $('comm-text').textContent=`${pOver}.${pBall} · ${shotName} vs ${bt.label} · ${pick(COMM[outcome==='W'?'W':outcome])}`;
-  if(!wasFreeHit)addChip(outcome);else addChip(outcome);
+  const commLine=pick(COMM[outcome==='W'?'W':outcome]);
+  $('comm-text').textContent=`${pOver}.${pBall} · ${shotName} vs ${bt.label} · ${commLine}`;
+  setTimeout(()=>speak(commLine),350);
+  addChip(outcome);
   if(pBall>=6){pBall=0;pOver++;if(pOver<=matchOvers)$('ball-log').appendChild(makeSep());}
   updateDisplay(pRuns,pWkts,pOver,pBall);updateSituationUI();buildShotGrid();
   updateRunRate();
@@ -872,6 +883,7 @@ function bowlToCPU(bt){
     // Wide
     cRuns+=1;
     $('comm-text').textContent=`${cOver}.${cBall} · ${bt.label} · WIDE — strays off!`;
+    sfxWhistle(false);speak('Wide! One run to CPU.');
     addExtraChip('Wd');
     $('mc-cpu').textContent=`${cRuns}/${cWkts}`;
     updateDisplay(cRuns,cWkts,cOver,cBall);
@@ -888,6 +900,7 @@ function bowlToCPU(bt){
     addExtraChip('Nb');
     $('bowl-tag').textContent=`You: ${bt.label} · ${bt.desc} — CPU FREE HIT`;
     $('comm-text').textContent=`${cOver}.${cBall} · ${bt.label} · NO BALL! CPU gets a free hit!`;
+    sfxWhistle(true);speak('No ball! CPU gets a free hit.');
     $('mc-cpu').textContent=`${cRuns}/${cWkts}`;
     updateDisplay(cRuns,cWkts,cOver,cBall);
     updateRunRate();
@@ -932,7 +945,9 @@ function executeCPUBall(bt,isNoball){
 function applyCPUOutcome(outcome,btName,wasFreeHit){
   cBall++;
   const ca=COMM[outcome==='W'?'cW':outcome===0?'c0':outcome]||COMM.c0;
-  $('comm-text').textContent=`${cOver}.${cBall} · CPU vs ${btName} · ${pick(ca)}`;
+  const cpuLine=pick(ca);
+  $('comm-text').textContent=`${cOver}.${cBall} · CPU vs ${btName} · ${cpuLine}`;
+  setTimeout(()=>speak(cpuLine),350);
   addChip(outcome);
   if(outcome==='W')cWkts++;else cRuns+=outcome;
   if(cBall>=6){cBall=0;cOver++;if(cOver<=matchOvers)$('ball-log').appendChild(makeSep());}
@@ -961,12 +976,15 @@ function endMatch(winner){
   if(winner==='player'){
     gt.textContent='You Win!';gt.className='ov-title';
     gs.textContent=`CPU ${cRuns}/${cWkts} — won by ${(cpuTarget-1)-cRuns} runs`;
+    setTimeout(()=>{sfxVictory();speak('Congratulations! You win the match!');},300);
   }else if(winner==='cpu_defended'){
     gt.textContent='CPU Wins';gt.className='ov-title loss';
     gs.textContent=`You needed ${cpuTarget} — fell short`;
+    setTimeout(()=>{sfxDefeat();speak('Oh no! CPU wins. Better luck next time.');},300);
   }else{
     gt.textContent='CPU Wins';gt.className='ov-title loss';
     gs.textContent=`CPU reached ${cpuTarget} — ${MAX_WICKETS-cWkts} wickets to spare`;
+    setTimeout(()=>{sfxDefeat();speak('CPU wins! They chased it down.');},300);
   }
   if(playerBatsFirst){
     gd.textContent=`You: ${pRuns}/${pWkts} · CPU: ${cRuns}/${cWkts}`;
@@ -984,9 +1002,10 @@ function animateBall(outcome,dir,cb){
   const endY=dir==='bat'?paR.height-46:20;
   const be=$('ball-el'),bat=$('bat-el');
   be.style.cssText=`display:block;left:${cx}px;top:${startY}px;transition:none;opacity:1;`;
-  if(dir==='bat')bat.classList.add('swing');
+  if(dir==='bat'){bat.classList.add('swing');sfxBat();}
   setTimeout(()=>{be.style.transition='left .36s linear,top .36s linear';be.style.left=cx+'px';be.style.top=endY+'px';},30);
   setTimeout(()=>{
+    playOutcomeSound(outcome);
     if(outcome==='W'){
       (dir==='bat'?['st-b1','st-b2','st-b3']:['st-w1','st-w2','st-w3']).forEach(id=>$(id)?.classList.add('fallen'));
       be.style.transition='opacity .3s';be.style.opacity='0';
@@ -1013,6 +1032,189 @@ function addChip(outcome){const v=outcome==='W'?'W':outcome;const d=document.cre
 function makeSep(){const d=document.createElement('div');d.className='bc bc-sep';return d;}
 function resetStumps(){document.querySelectorAll('.stump').forEach(s=>s.classList.remove('fallen'));}
 function setBanner(cls,txt){const b=$('phase-banner');b.className=`phase-banner ${cls}`;b.textContent=txt;}
+
+/* ── AUDIO ENGINE ── */
+let audioEnabled=true;
+let _actx=null;
+function getCtx(){
+  if(!_actx)_actx=new(window.AudioContext||window.webkitAudioContext)();
+  if(_actx.state==='suspended')_actx.resume();
+  return _actx;
+}
+
+// Speech synthesis
+let _synthVoice=null;
+function _loadVoices(){
+  const vs=speechSynthesis.getVoices();
+  _synthVoice=vs.find(v=>v.lang.startsWith('en')&&v.localService)||vs.find(v=>v.lang.startsWith('en'))||null;
+}
+speechSynthesis.onvoiceschanged=_loadVoices;
+_loadVoices();
+
+function speak(text){
+  if(!audioEnabled||!text)return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  if(_synthVoice)u.voice=_synthVoice;
+  u.rate=1.2;u.pitch=1.1;u.volume=0.95;
+  speechSynthesis.speak(u);
+}
+
+function toggleAudio(){
+  audioEnabled=!audioEnabled;
+  $('audio-btn').textContent=audioEnabled?'🔊':'🔇';
+  $('audio-btn').classList.toggle('muted',!audioEnabled);
+  if(!audioEnabled)speechSynthesis.cancel();
+}
+
+// Noise buffer helper
+function _noise(ctx,dur,gain,decay){
+  const n=Math.floor(ctx.sampleRate*dur);
+  const b=ctx.createBuffer(1,n,ctx.sampleRate);
+  const d=b.getChannelData(0);
+  for(let i=0;i<n;i++){const t=i/ctx.sampleRate;d[i]=(Math.random()*2-1)*Math.exp(-t*decay);}
+  const s=ctx.createBufferSource();s.buffer=b;
+  const g=ctx.createGain();g.gain.value=gain;
+  s.connect(g);g.connect(ctx.destination);s.start();
+}
+
+function sfxBat(){
+  if(!audioEnabled)return;
+  try{
+    const ctx=getCtx();
+    const n=Math.floor(ctx.sampleRate*.09);
+    const b=ctx.createBuffer(1,n,ctx.sampleRate);
+    const d=b.getChannelData(0);
+    for(let i=0;i<n;i++){const t=i/ctx.sampleRate;d[i]=(Math.random()*2-1)*Math.exp(-t*55)*0.85;}
+    const s=ctx.createBufferSource();s.buffer=b;
+    const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=900;
+    const g=ctx.createGain();g.gain.value=0.75;
+    s.connect(f);f.connect(g);g.connect(ctx.destination);s.start();
+  }catch(e){}
+}
+
+function sfxCheer(level){ // 1=single/2-3, 2=four, 3=six
+  if(!audioEnabled)return;
+  try{
+    const ctx=getCtx();
+    const dur=level===3?2.2:level===2?1.5:0.9;
+    const vol=level===3?.55:level===2?.42:.28;
+    const b=ctx.createBuffer(2,Math.floor(ctx.sampleRate*dur),ctx.sampleRate);
+    for(let ch=0;ch<2;ch++){
+      const d=b.getChannelData(ch);
+      for(let i=0;i<d.length;i++){
+        const t=i/ctx.sampleRate;
+        const env=Math.pow(Math.sin(Math.PI*t/dur),.45)*Math.exp(-t*(level<3?1.2:.65));
+        d[i]=(Math.random()*2-1)*env*vol+(ch===1?(Math.random()*2-1)*env*vol*.3:0);
+      }
+    }
+    const s=ctx.createBufferSource();s.buffer=b;
+    const f=ctx.createBiquadFilter();f.type='bandpass';
+    f.frequency.value=level===3?1500:1100;f.Q.value=0.45;
+    s.connect(f);f.connect(ctx.destination);s.start();
+  }catch(e){}
+}
+
+function sfxWicket(){
+  if(!audioEnabled)return;
+  try{
+    const ctx=getCtx();
+    const dur=.45;
+    const b=ctx.createBuffer(1,Math.floor(ctx.sampleRate*dur),ctx.sampleRate);
+    const d=b.getChannelData(0);
+    for(let i=0;i<d.length;i++){
+      const t=i/ctx.sampleRate;
+      const rattle=[160,270,410,580].reduce((s,f)=>s+Math.sin(2*Math.PI*f*t)*.12,0);
+      d[i]=(rattle+(Math.random()*2-1)*.55)*Math.exp(-t*16);
+    }
+    const s=ctx.createBufferSource();s.buffer=b;
+    const g=ctx.createGain();g.gain.value=.9;
+    s.connect(g);g.connect(ctx.destination);s.start();
+    // crowd groan after
+    setTimeout(()=>_noise(ctx,.6,.18,4),250);
+  }catch(e){}
+}
+
+function sfxDot(){
+  if(!audioEnabled)return;
+  try{
+    const ctx=getCtx();
+    const o=ctx.createOscillator();
+    const g=ctx.createGain();
+    o.frequency.value=110;o.type='sine';
+    g.gain.setValueAtTime(.22,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.12);
+    o.connect(g);g.connect(ctx.destination);
+    o.start();o.stop(ctx.currentTime+.12);
+  }catch(e){}
+}
+
+function sfxWhistle(high){
+  if(!audioEnabled)return;
+  try{
+    const ctx=getCtx();
+    const o=ctx.createOscillator();
+    const g=ctx.createGain();
+    o.frequency.setValueAtTime(high?1700:1300,ctx.currentTime);
+    o.frequency.linearRampToValueAtTime(high?2100:1000,ctx.currentTime+.22);
+    g.gain.setValueAtTime(.28,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.28);
+    o.connect(g);g.connect(ctx.destination);
+    o.start();o.stop(ctx.currentTime+.28);
+  }catch(e){}
+}
+
+function sfxFanfare(){
+  if(!audioEnabled)return;
+  try{
+    const ctx=getCtx();
+    [523,659,784,1047].forEach((freq,i)=>{
+      const o=ctx.createOscillator();const g=ctx.createGain();
+      const t=ctx.currentTime+i*.11;
+      o.frequency.value=freq;o.type='triangle';
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.22,t+.04);
+      g.gain.exponentialRampToValueAtTime(.001,t+.28);
+      o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+.28);
+    });
+  }catch(e){}
+}
+
+function sfxVictory(){
+  if(!audioEnabled)return;
+  try{
+    const ctx=getCtx();
+    [[523,0],[659,.14],[784,.28],[1047,.42],[784,.60],[1047,.74]].forEach(([freq,t])=>{
+      const o=ctx.createOscillator();const g=ctx.createGain();
+      const st=ctx.currentTime+t;
+      o.frequency.value=freq;o.type='triangle';
+      g.gain.setValueAtTime(.22,st);g.gain.exponentialRampToValueAtTime(.001,st+.28);
+      o.connect(g);g.connect(ctx.destination);o.start(st);o.stop(st+.28);
+    });
+    setTimeout(()=>sfxCheer(3),200);
+  }catch(e){}
+}
+
+function sfxDefeat(){
+  if(!audioEnabled)return;
+  try{
+    const ctx=getCtx();
+    [[392,0],[349,.2],[330,.4],[294,.6]].forEach(([freq,t])=>{
+      const o=ctx.createOscillator();const g=ctx.createGain();
+      const st=ctx.currentTime+t;
+      o.frequency.value=freq;o.type='sawtooth';
+      g.gain.setValueAtTime(.15,st);g.gain.exponentialRampToValueAtTime(.001,st+.3);
+      o.connect(g);g.connect(ctx.destination);o.start(st);o.stop(st+.3);
+    });
+  }catch(e){}
+}
+
+function playOutcomeSound(outcome){
+  if(outcome==='W')sfxWicket();
+  else if(outcome===6)sfxCheer(3);
+  else if(outcome===4)sfxCheer(2);
+  else if(outcome>0)sfxCheer(1);
+  else sfxDot();
+}
 
 initGame();
 </script>

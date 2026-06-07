@@ -319,9 +319,8 @@ body::before{
   <div class="ov-title">Cricket</div>
   <div class="ov-sub">Choose match length</div>
   <div id="overs-row">
-    <button class="ov-sel-btn active" data-overs="5" onclick="selectOvers(5)">5</button>
-    <button class="ov-sel-btn" data-overs="10" onclick="selectOvers(10)">10</button>
-    <button class="ov-sel-btn" data-overs="20" onclick="selectOvers(20)">20</button>
+    <button class="ov-sel-btn active" data-overs="2" onclick="selectOvers(2)">2</button>
+    <button class="ov-sel-btn" data-overs="5" onclick="selectOvers(5)">5</button>
   </div>
   <div id="toss-coin">🪙</div>
   <div id="toss-result"></div>
@@ -472,18 +471,18 @@ const DELIVERY_WIDE  ={pace:.05,swing:.14,spin:.04,yorker:.07,bouncer:.22,slow:.
 const DELIVERY_NOBALL={pace:.08,swing:.05,spin:.03,yorker:.17,bouncer:.06,slow:.03};
 
 const FORM_LEVELS=[
-  {name:'❄ Cold',     col:'#5dade2',wMult:1.10,bBoost:0.75,xp:0, xpNext:6  },
-  {name:'Settling',   col:'#58d68d',wMult:1.00,bBoost:0.90,xp:6, xpNext:16 },
-  {name:'Set',        col:'#f0c040',wMult:0.88,bBoost:1.05,xp:16,xpNext:30 },
-  {name:'In Form',    col:'#e67e22',wMult:0.74,bBoost:1.20,xp:30,xpNext:50 },
-  {name:'🔥 On Fire', col:'#e74c3c',wMult:0.58,bBoost:1.40,xp:50,xpNext:999},
+  {name:'❄ Cold',     col:'#5dade2',wMult:0.92,bBoost:0.90,xp:0, xpNext:4  },
+  {name:'Settling',   col:'#58d68d',wMult:0.80,bBoost:1.05,xp:4, xpNext:12 },
+  {name:'Set',        col:'#f0c040',wMult:0.65,bBoost:1.25,xp:12,xpNext:24 },
+  {name:'In Form',    col:'#e67e22',wMult:0.50,bBoost:1.50,xp:24,xpNext:40 },
+  {name:'🔥 On Fire', col:'#e74c3c',wMult:0.35,bBoost:1.80,xp:40,xpNext:999},
 ];
 
 const SHOTS=[
-  {id:'block',label:'Block',range:'0',   bW:.06,p:[.75,.20,.05,.00,.00,.00],risk:1,reward:1},
-  {id:'nudge',label:'1–3', range:'1–3', bW:.09,p:[.12,.38,.30,.14,.05,.01],risk:2,reward:2},
-  {id:'four', label:'Four',range:'4',   bW:.16,p:[.10,.12,.14,.12,.46,.06],risk:3,reward:4},
-  {id:'six',  label:'Six', range:'6',   bW:.28,p:[.08,.07,.07,.06,.18,.54],risk:5,reward:5},
+  {id:'block',label:'Block',range:'0–1',  bW:.03,p:[.28,.48,.16,.08,.00,.00],risk:1,reward:1},
+  {id:'drive',label:'Drive',range:'1–3',  bW:.06,p:[.07,.26,.32,.22,.10,.03],risk:2,reward:2},
+  {id:'four', label:'Four', range:'4',    bW:.11,p:[.05,.07,.10,.08,.58,.12],risk:3,reward:4},
+  {id:'six',  label:'Six',  range:'6',    bW:.18,p:[.04,.04,.04,.04,.14,.70],risk:5,reward:5},
 ];
 
 const BOWL_TYPES=[
@@ -525,7 +524,7 @@ let freehit,cpuFreehit;
 const $=id=>document.getElementById(id);
 
 /* ── SETUP / TOSS ── */
-let selectedOvers=5;
+let selectedOvers=2;
 
 function selectOvers(n){
   selectedOvers=n;
@@ -551,9 +550,9 @@ function doToss(){
 
 function initGame(){
   // Show setup overlay, reset toss state
-  selectedOvers=5;
+  selectedOvers=2;
   document.querySelectorAll('.ov-sel-btn').forEach(b=>{
-    b.classList.toggle('active',parseInt(b.dataset.overs)===5);
+    b.classList.toggle('active',parseInt(b.dataset.overs)===2);
   });
   $('toss-result').textContent='';
   $('toss-coin').textContent='🪙';
@@ -904,11 +903,11 @@ function executeCPUBall(bt,isNoball){
   const isFreeHit=cpuFreehit&&!isNoball;
   if(isFreeHit)cpuFreehit=false;
 
-  let w=isFreeHit?0:Math.min(.11*bt.wM,.5);
-  let p=[.18,.28,.22,.10,.12,.10];
+  let w=isFreeHit?0:Math.min(.09*bt.wM,.4);
+  let p=[.08,.20,.20,.14,.22,.16];
   p[4]*=bt.bdM;p[5]*=bt.bdM;
   const ballsLeft=(matchOvers-cOver)*6+(6-cBall);
-  if(ballsLeft>0&&cpuTarget&&(cpuTarget-cRuns)/ballsLeft>1.5){p[4]+=.06;p[5]+=.08;w+=isFreeHit?0:.05;}
+  if(ballsLeft>0&&cpuTarget&&(cpuTarget-cRuns)/ballsLeft>1.5){p[4]+=.08;p[5]+=.10;w+=isFreeHit?0:.04;}
   const s=p.reduce((a,b)=>a+b,0);if(s>0){const sc=(1-w)/s;p=p.map(v=>Math.max(0,v*sc));}
   const isOut=w>0&&Math.random()<w;
   const outcome=isOut?'W':rollRuns(p);

@@ -105,6 +105,25 @@ body::before{
 .inn-val{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:rgba(255,255,255,.5);letter-spacing:1px;}
 .inn-val.active{color:#f0c040;}
 
+/* ── RUN RATE ROW ── */
+#rr-row{
+  flex-shrink:0;
+  display:none;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  border-radius:8px;padding:5px 12px;
+  flex-direction:row;align-items:center;justify-content:space-between;
+  gap:10px;
+}
+#rr-row.show{display:flex;}
+.rr-chip{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.rr-label{font-size:.45rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.28);}
+.rr-val{font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:1px;}
+.rr-val.crr{color:rgba(255,255,255,.6);}
+.rr-val.rrr-ok{color:#58d68d;}
+.rr-val.rrr-warn{color:#e67e22;}
+.rr-val.rrr-high{color:#e74c3c;}
+#rr-need{font-size:.52rem;letter-spacing:1px;color:rgba(255,255,255,.35);text-align:center;}
+
 /* ── PITCH ── */
 #pitch-area{
   flex:1;min-height:0;
@@ -176,6 +195,16 @@ body::before{
   color:rgba(255,255,255,.3);text-align:center;min-height:16px;
 }
 
+/* ── FREE HIT BADGE ── */
+#freehit-badge{
+  flex-shrink:0;
+  display:none;
+  font-size:.6rem;letter-spacing:2px;text-transform:uppercase;
+  padding:4px 14px;border-radius:20px;text-align:center;
+  background:rgba(46,204,113,.18);color:#2ecc71;border:1px solid rgba(46,204,113,.5);
+}
+#freehit-badge.show{display:block;}
+
 /* ── SHOT / BOWL BUTTONS ── */
 #shot-grid{
   flex-shrink:0;
@@ -223,6 +252,8 @@ body::before{
 .bc-6{background:rgba(240,192,64,.32);color:#f0c040;border-color:#f0c040;}
 .bc-W{background:rgba(192,57,43,.4);color:#ff6b6b;border-color:#e74c3c;}
 .bc-sep{width:auto;border-radius:0;border:none;border-left:1px solid rgba(255,255,255,.12);height:22px;margin:0 1px;}
+.bc-Wd{background:rgba(46,204,113,.18);color:#2ecc71;border-color:rgba(46,204,113,.4);width:auto;padding:0 5px;border-radius:6px;}
+.bc-Nb{background:rgba(230,126,34,.2);color:#e67e22;border-color:rgba(230,126,34,.5);width:auto;padding:0 5px;border-radius:6px;}
 
 /* ── OVERLAYS ── */
 .overlay{
@@ -241,17 +272,70 @@ body::before{
   padding:12px 36px;border-radius:10px;border:none;cursor:pointer;
   background:#f0c040;color:#0f0f1e;box-shadow:0 4px 20px rgba(240,192,64,.4);margin-top:4px;
 }
+
+/* ── SETUP OVERLAY ── */
+#setup-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(10,10,20,.96);backdrop-filter:blur(16px);z-index:100;
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;text-align:center;padding:24px;
+}
+#setup-overlay.show{display:flex;}
+#setup-overlay .ov-title{margin-bottom:0;}
+#setup-overlay .ov-sub{margin-top:-8px;}
+#overs-row{display:flex;gap:10px;justify-content:center;margin:4px 0;}
+.ov-sel-btn{
+  font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:3px;
+  padding:10px 22px;border-radius:20px;cursor:pointer;
+  background:rgba(255,255,255,.06);border:1px solid rgba(240,192,64,.25);
+  color:rgba(255,255,255,.5);transition:all .2s;
+}
+.ov-sel-btn:hover{background:rgba(240,192,64,.12);border-color:rgba(240,192,64,.5);color:#f0c040;}
+.ov-sel-btn.active{background:rgba(240,192,64,.18);border-color:#f0c040;color:#f0c040;box-shadow:0 0 14px rgba(240,192,64,.25);}
+#toss-btn{
+  font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:4px;
+  padding:12px 36px;border-radius:10px;border:none;cursor:pointer;
+  background:#f0c040;color:#0f0f1e;box-shadow:0 4px 20px rgba(240,192,64,.4);
+}
+#toss-result{
+  font-size:.7rem;letter-spacing:2px;color:rgba(255,255,255,.55);
+  min-height:18px;text-transform:uppercase;
+}
+#toss-coin{
+  font-size:2.8rem;transition:transform .4s;
+}
+#play-btn{
+  display:none;
+  font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:4px;
+  padding:12px 36px;border-radius:10px;border:none;cursor:pointer;
+  background:#f0c040;color:#0f0f1e;box-shadow:0 4px 20px rgba(240,192,64,.4);
+}
 </style>
 </head>
 <body>
 
+<!-- SETUP OVERLAY -->
+<div id="setup-overlay" class="show">
+  <div class="ov-title">Cricket</div>
+  <div class="ov-sub">Choose match length</div>
+  <div id="overs-row">
+    <button class="ov-sel-btn active" data-overs="5" onclick="selectOvers(5)">5</button>
+    <button class="ov-sel-btn" data-overs="10" onclick="selectOvers(10)">10</button>
+    <button class="ov-sel-btn" data-overs="20" onclick="selectOvers(20)">20</button>
+  </div>
+  <div id="toss-coin">🪙</div>
+  <div id="toss-result"></div>
+  <button id="toss-btn" onclick="doToss()">Flip Coin 🪙</button>
+  <button id="play-btn" onclick="startMatch()">Let's Play →</button>
+</div>
+
 <!-- INNINGS BREAK -->
 <div id="innings-overlay" class="overlay">
   <div class="ov-title">Break</div>
-  <div class="ov-sub">Your innings is over</div>
+  <div class="ov-sub" id="io-sub">Your innings is over</div>
   <div class="ov-score" id="io-score"></div>
   <div class="ov-sub" id="io-msg"></div>
-  <button class="ov-btn" onclick="startCPUInnings()">Now You Bowl →</button>
+  <button class="ov-btn" id="io-btn" onclick="startSecondInnings()">Now You Bowl →</button>
 </div>
 
 <!-- GAME OVER -->
@@ -330,6 +414,19 @@ body::before{
     </div>
   </div>
 
+  <!-- RUN RATE ROW -->
+  <div id="rr-row">
+    <div class="rr-chip">
+      <div class="rr-label">CRR</div>
+      <div class="rr-val crr" id="rr-crr">–</div>
+    </div>
+    <div id="rr-need">–</div>
+    <div class="rr-chip">
+      <div class="rr-label">RRR</div>
+      <div class="rr-val rrr-ok" id="rr-rrr">–</div>
+    </div>
+  </div>
+
   <!-- PITCH -->
   <div id="pitch-area">
     <div id="pitch-strip"></div>
@@ -352,20 +449,27 @@ body::before{
   <!-- BOWL TAG -->
   <div id="bowl-tag"></div>
 
+  <!-- FREE HIT BADGE -->
+  <div id="freehit-badge">🔓 FREE HIT</div>
+
   <!-- SHOT / BOWL GRIDS -->
   <div id="shot-grid"></div>
   <div id="bowl-grid"></div>
 
   <!-- COMMENTARY -->
   <div id="commentary">
-    <span id="comm-text">You bat first — 5 overs. Build form, then go big.</span>
+    <span id="comm-text">Choose match length and flip the coin!</span>
     <div class="ball-log" id="ball-log"></div>
   </div>
 
 </div>
 
 <script>
-const MAX_OVERS=5,MAX_WICKETS=10;
+const MAX_WICKETS=10;
+
+// Extras per-delivery probabilities
+const DELIVERY_WIDE  ={pace:.05,swing:.14,spin:.04,yorker:.07,bouncer:.22,slow:.06};
+const DELIVERY_NOBALL={pace:.08,swing:.05,spin:.03,yorker:.17,bouncer:.06,slow:.03};
 
 const FORM_LEVELS=[
   {name:'❄ Cold',     col:'#5dade2',wMult:1.10,bBoost:0.75,xp:0, xpNext:6  },
@@ -415,24 +519,84 @@ const COMM={
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 function rollRuns(p){const v=[0,1,2,3,4,6],r=Math.random();let c=0;for(let i=0;i<p.length;i++){c+=p[i];if(r<c)return v[i];}return 0;}
 
+let matchOvers,playerBatsFirst;
 let phase,pRuns,pWkts,pBall,pOver,cRuns,cWkts,cBall,cOver,cpuTarget,animating,formXP,formLevel,dots;
+let freehit,cpuFreehit;
 const $=id=>document.getElementById(id);
 
+/* ── SETUP / TOSS ── */
+let selectedOvers=5;
+
+function selectOvers(n){
+  selectedOvers=n;
+  document.querySelectorAll('.ov-sel-btn').forEach(b=>{
+    b.classList.toggle('active',parseInt(b.dataset.overs)===n);
+  });
+}
+
+function doToss(){
+  const coin=Math.random()<.5;// true=player wins
+  const playerWins=coin;
+  playerBatsFirst=playerWins;
+  matchOvers=selectedOvers;
+  // animate coin
+  $('toss-coin').style.transform='rotateY(720deg) scale(1.3)';
+  setTimeout(()=>{$('toss-coin').style.transform='';},400);
+  const side=coin?'Heads':'Tails';
+  const batFirst=playerWins?'You bat first':'CPU bats first';
+  $('toss-result').textContent=`${side} — ${batFirst}`;
+  $('toss-btn').style.display='none';
+  $('play-btn').style.display='block';
+}
+
 function initGame(){
-  phase='batting';pRuns=0;pWkts=0;pBall=0;pOver=1;
-  cRuns=0;cWkts=0;cBall=0;cOver=1;cpuTarget=null;animating=false;
+  // Show setup overlay, reset toss state
+  selectedOvers=5;
+  document.querySelectorAll('.ov-sel-btn').forEach(b=>{
+    b.classList.toggle('active',parseInt(b.dataset.overs)===5);
+  });
+  $('toss-result').textContent='';
+  $('toss-coin').textContent='🪙';
+  $('toss-coin').style.transform='';
+  $('toss-btn').style.display='block';
+  $('play-btn').style.display='none';
+  $('setup-overlay').classList.add('show');
+  $('innings-overlay').classList.remove('show');
+  $('gameover').classList.remove('show');
+}
+
+function startMatch(){
+  $('setup-overlay').classList.remove('show');
+  matchOvers=selectedOvers;
+  phase=playerBatsFirst?'batting':'bowling';
+  pRuns=0;pWkts=0;pBall=0;pOver=1;
+  cRuns=0;cWkts=0;cBall=0;cOver=1;
+  cpuTarget=null;animating=false;
+  freehit=false;cpuFreehit=false;
   formXP=0;formLevel=0;dots=0;
-  $('innings-overlay').classList.remove('show');$('gameover').classList.remove('show');
-  $('mc-you').textContent='batting';$('mc-you').className='inn-val active';
-  $('mc-cpu').textContent='–';$('mc-cpu').className='inn-val';
+  $('mc-you').textContent=playerBatsFirst?'batting':'bowling';
+  $('mc-you').className='inn-val active';
+  $('mc-cpu').textContent=playerBatsFirst?'–':'batting';
+  $('mc-cpu').className=playerBatsFirst?'inn-val':'inn-val active';
   $('ball-log').innerHTML='';$('bowl-tag').textContent='';
   $('sb-target').textContent='–';$('sb-need').textContent='–';
-  $('status-strip').style.display='';
+  $('status-strip').style.display=playerBatsFirst?'':'none';
+  $('freehit-badge').classList.remove('show');
   resetStumps();buildFieldDots();buildShotGrid();buildBowlGrid();
-  $('shot-grid').style.display='grid';$('bowl-grid').style.display='none';
-  setBanner('batting','1st Inn · You Bat');
-  updateDisplay(0,0,1,0);updateFormUI();updateSituationUI();
-  $('comm-text').textContent='You bat first — 5 overs. Build form, then go big.';
+  $('rr-row').classList.remove('show');
+  if(playerBatsFirst){
+    $('shot-grid').style.display='grid';$('bowl-grid').style.display='none';
+    setBanner('batting','1st Inn · You Bat');
+    updateDisplay(0,0,1,0);updateFormUI();updateSituationUI();
+    $('comm-text').textContent=`You bat first — ${matchOvers} overs. Build form, then go big.`;
+  }else{
+    $('shot-grid').style.display='none';$('bowl-grid').style.display='grid';
+    setBanner('bowling','1st Inn · You Bowl');
+    updateDisplay(0,0,1,0);
+    $('comm-text').textContent=`CPU bats first — ${matchOvers} overs. Keep them low!`;
+    $('bowl-tag').textContent='';
+    ALL_ZONES.forEach(z=>$('fd-'+z.id)?.classList.remove('on'));
+  }
 }
 
 // FORM
@@ -458,12 +622,12 @@ function updateFormUI(){
 // PRESSURE
 function calcPressure(){
   if(phase!=='batting')return 0;
-  const ballsLeft=MAX_OVERS*6-(pOver-1)*6-pBall;
+  const ballsLeft=matchOvers*6-(pOver-1)*6-pBall;
   if(ballsLeft<=0)return 1;
-  const needed=(cpuTarget||35)-pRuns;
+  const needed=(cpuTarget||Math.round(matchOvers*7))-pRuns;
   const rpb=needed/ballsLeft;
   const wf=pWkts>=8?.3:pWkts>=6?.15:0;
-  const fo=pOver>=MAX_OVERS?.15:0;
+  const fo=pOver>=matchOvers?.15:0;
   return Math.min(1,Math.max(0,(rpb-.8)/1.5)+wf+fo);
 }
 function updateSituationUI(){
@@ -474,6 +638,45 @@ function updateSituationUI(){
   $('pressure-fill').style.background=col;
   $('pressure-desc').textContent=desc;$('pressure-desc').style.color=col;
   $('fe-sit').textContent=desc;$('fe-sit').style.color=col;
+}
+
+/* ── RUN RATE ── */
+function updateRunRate(){
+  const rrRow=$('rr-row');
+  // Determine which team is batting and what phase we're in
+  const isSecondInnings=cpuTarget!==null;
+  if(!isSecondInnings){rrRow.classList.remove('show');return;}
+  rrRow.classList.add('show');
+
+  let battingRuns,battingOver,battingBall,target;
+  if(phase==='batting'){
+    // Player chasing (player bats 2nd, CPU batted 1st, or player bats 2nd in normal order)
+    battingRuns=pRuns;battingOver=pOver;battingBall=pBall;target=cpuTarget;
+  }else{
+    // CPU chasing (CPU bats 2nd — when player bats first then bowls)
+    battingRuns=cRuns;battingOver=cOver;battingBall=cBall;target=cpuTarget;
+  }
+  const oversPlayed=(battingOver-1)+battingBall/6;
+  const crr=oversPlayed>0?battingRuns/oversPlayed:null;
+  const totalBalls=matchOvers*6;
+  const ballsBowled=(battingOver-1)*6+battingBall;
+  const ballsLeft=totalBalls-ballsBowled;
+  const runsNeeded=Math.max(0,target-battingRuns);
+  const rrr=ballsLeft>0?(runsNeeded/(ballsLeft/6)):null;
+
+  $('rr-crr').textContent=crr!==null?crr.toFixed(2):'–';
+  if(rrr!==null){
+    const rrrVal=Math.min(99.9,rrr);
+    $('rr-rrr').textContent=rrrVal.toFixed(2);
+    const crrNum=crr||0;
+    const cls=rrrVal<crrNum+1?'rrr-ok':rrrVal<crrNum+3?'rrr-warn':'rrr-high';
+    $('rr-rrr').className='rr-val '+cls;
+    $('rr-need').textContent=`Need ${runsNeeded} off ${ballsLeft}b`;
+  }else{
+    $('rr-rrr').textContent='–';
+    $('rr-rrr').className='rr-val rrr-ok';
+    $('rr-need').textContent='';
+  }
 }
 
 // SHOT GRID
@@ -515,60 +718,146 @@ function buildFieldDots(){
 function setField(bid){ALL_ZONES.forEach(z=>$('fd-'+z.id)?.classList.remove('on'));(BOWL_FIELD[bid]||[]).forEach(z=>$('fd-'+z)?.classList.add('on'));}
 function flashField(bid){const z=BOWL_FIELD[bid]||[];if(z.length){const d=$('fd-'+pick(z));if(d){d.classList.remove('flash');void d.offsetWidth;d.classList.add('flash');}}}
 
-// BATTING
+/* ── EXTRAS CHIP ── */
+function addExtraChip(type){
+  const d=document.createElement('div');
+  d.className=`bc bc-${type}`;d.textContent=type;
+  $('ball-log').appendChild(d);
+}
+
+/* ── BATTING (player bats) ── */
 function playShot(shot){
   if(animating||phase!=='batting')return;
   animating=true;setShotBtns(false);
   const bt=pick(BOWL_TYPES);
   setField(bt.id);
   $('bowl-tag').textContent=`${bt.label} · ${bt.desc}`;
+
+  // Check for wide (if no freehit already active)
+  if(!freehit){
+    if(Math.random()<.06){
+      // Wide — +1 run, ball not counted
+      pRuns+=1;
+      $('comm-text').textContent=`${pOver}.${pBall} · ${bt.label} · WIDE — ball strays off`;
+      addExtraChip('Wd');
+      updateDisplay(pRuns,pWkts,pOver,pBall);
+      updateRunRate();
+      animating=false;
+      setShotBtns(true);
+      return;
+    }
+    if(Math.random()<.04){
+      // No-ball — +1 run penalty, player still plays shot, bW=0
+      pRuns+=1;
+      freehit=true;
+      $('freehit-badge').classList.add('show');
+      addExtraChip('Nb');
+      $('comm-text').textContent=`${pOver}.${pBall} · ${bt.label} · NO BALL! Free hit incoming!`;
+      // Continue to play the shot but with freehit=true
+      executePlayerShot(shot,bt);
+      return;
+    }
+  }
+  executePlayerShot(shot,bt);
+}
+
+function executePlayerShot(shot,bt){
   const fl=FORM_LEVELS[formLevel];
   const pressure=calcPressure();
-  let bW=Math.min(shot.bW*fl.wMult*bt.wM,.55);
+  let bW=freehit?0:Math.min(shot.bW*fl.wMult*bt.wM,.55);
   let p=[...shot.p];
   p[4]*=fl.bBoost*bt.bdM;p[5]*=fl.bBoost*bt.bdM;
   if(pressure>.5){const sp=pressure*.04;bW+=sp;p[5]+=sp*.4;p[0]+=sp*.4;p[1]-=sp*.4;}
+  if(freehit)bW=0;
   const sum=p.reduce((a,b)=>a+b,0);
   if(sum>0){const sc=(1-bW)/sum;p=p.map(v=>Math.max(0,v*sc));}
-  const isOut=Math.random()<bW;
+  const isOut=bW>0&&Math.random()<bW;
   const outcome=isOut?'W':rollRuns(p);
   animateBall(outcome,'bat',()=>{applyBatOutcome(outcome,shot.label,bt);animating=false;});
 }
 
 function applyBatOutcome(outcome,shotName,bt){
+  const wasFreeHit=freehit;
+  freehit=false;
+  $('freehit-badge').classList.remove('show');
   pBall++;
   if(outcome==='W'){pWkts++;resetForm();}
   else{pRuns+=outcome;addFormXP(outcome);if(outcome>=4)flashField(bt.id);}
   $('comm-text').textContent=`${pOver}.${pBall} · ${shotName} vs ${bt.label} · ${pick(COMM[outcome==='W'?'W':outcome])}`;
-  addChip(outcome);
-  if(pBall>=6){pBall=0;pOver++;if(pOver<=MAX_OVERS)$('ball-log').appendChild(makeSep());}
+  if(!wasFreeHit)addChip(outcome);else addChip(outcome);
+  if(pBall>=6){pBall=0;pOver++;if(pOver<=matchOvers)$('ball-log').appendChild(makeSep());}
   updateDisplay(pRuns,pWkts,pOver,pBall);updateSituationUI();buildShotGrid();
-  if(pWkts>=MAX_WICKETS||(pOver>MAX_OVERS&&pBall===0)){endPlayerInnings();return;}
+  updateRunRate();
+  if(pWkts>=MAX_WICKETS||(pOver>matchOvers&&pBall===0)){endCurrentInnings();return;}
+  // Check win while chasing
+  if(cpuTarget!==null&&pRuns>=cpuTarget){endMatch('player');return;}
   setShotBtns(true);
 }
 
-function endPlayerInnings(){
-  $('mc-you').textContent=`${pRuns}/${pWkts}`;$('mc-you').className='inn-val';
-  cpuTarget=pRuns+1;
-  $('io-score').textContent=`You scored ${pRuns}/${pWkts}`;
-  $('io-msg').textContent=`CPU needs ${cpuTarget} to win`;
-  $('innings-overlay').classList.add('show');
+function endCurrentInnings(){
+  if(playerBatsFirst){
+    // Player just finished batting (1st innings), now player bowls
+    $('mc-you').textContent=`${pRuns}/${pWkts}`;$('mc-you').className='inn-val';
+    cpuTarget=pRuns+1;
+    $('io-sub').textContent='Your innings is over';
+    $('io-score').textContent=`You scored ${pRuns}/${pWkts}`;
+    $('io-msg').textContent=`CPU needs ${cpuTarget} to win`;
+    $('io-btn').textContent='Now You Bowl →';
+    $('innings-overlay').classList.add('show');
+  }else{
+    // Player was batting 2nd (chasing CPU's score) and ran out
+    endMatch('cpu_defended');
+  }
 }
 
-// CPU INNINGS
-function startCPUInnings(){
+/* ── CPU INNINGS (player bowls) ── */
+function startSecondInnings(){
   $('innings-overlay').classList.remove('show');
-  phase='bowling';resetStumps();$('ball-log').innerHTML='';
-  $('sb-target').textContent=cpuTarget;$('sb-need').textContent=cpuTarget;
-  $('mc-cpu').textContent='0/0';$('mc-cpu').className='inn-val active';
-  $('mc-you').textContent=`${pRuns}/${pWkts}`;$('mc-you').className='inn-val';
-  $('shot-grid').style.display='none';$('bowl-grid').style.display='grid';
-  $('status-strip').style.display='none';
-  setBanner('bowling','2nd Inn · You Bowl');
-  updateDisplay(0,0,1,0);
-  $('comm-text').textContent=`CPU needs ${cpuTarget} to win. Pick your delivery!`;
-  $('bowl-tag').textContent='';
-  ALL_ZONES.forEach(z=>$('fd-'+z.id)?.classList.remove('on'));
+  if(playerBatsFirst){
+    // CPU now bats (2nd innings)
+    phase='bowling';
+    resetStumps();$('ball-log').innerHTML='';
+    $('sb-target').textContent=cpuTarget;$('sb-need').textContent=cpuTarget;
+    $('mc-cpu').textContent='0/0';$('mc-cpu').className='inn-val active';
+    $('mc-you').textContent=`${pRuns}/${pWkts}`;$('mc-you').className='inn-val';
+    $('shot-grid').style.display='none';$('bowl-grid').style.display='grid';
+    $('status-strip').style.display='none';
+    setBanner('bowling','2nd Inn · You Bowl');
+    updateDisplay(0,0,1,0);
+    updateRunRate();
+    $('comm-text').textContent=`CPU needs ${cpuTarget} to win. Pick your delivery!`;
+    $('bowl-tag').textContent='';
+    ALL_ZONES.forEach(z=>$('fd-'+z.id)?.classList.remove('on'));
+  }else{
+    // Player bats 2nd (chasing CPU's score)
+    phase='batting';
+    cpuTarget=cRuns+1;
+    resetStumps();$('ball-log').innerHTML='';
+    $('mc-you').textContent='batting';$('mc-you').className='inn-val active';
+    $('mc-cpu').textContent=`${cRuns}/${cWkts}`;$('mc-cpu').className='inn-val';
+    $('shot-grid').style.display='grid';$('bowl-grid').style.display='none';
+    $('status-strip').style.display='';
+    $('sb-target').textContent=cpuTarget;
+    $('sb-need').textContent=cpuTarget;
+    setBanner('batting','2nd Inn · You Bat');
+    formXP=0;formLevel=0;dots=0;freehit=false;
+    $('freehit-badge').classList.remove('show');
+    updateDisplay(0,0,1,0);updateFormUI();updateSituationUI();
+    updateRunRate();
+    $('comm-text').textContent=`CPU scored ${cRuns}/${cWkts} — you need ${cpuTarget} to win!`;
+    ALL_ZONES.forEach(z=>$('fd-'+z.id)?.classList.remove('on'));
+  }
+}
+
+function endCPUFirstInnings(){
+  // CPU just finished batting 1st innings, player now chases
+  $('mc-cpu').textContent=`${cRuns}/${cWkts}`;$('mc-cpu').className='inn-val';
+  $('io-sub').textContent="CPU's innings is over";
+  $('io-score').textContent=`CPU scored ${cRuns}/${cWkts}`;
+  const need=cRuns+1;
+  $('io-msg').textContent=`You need ${need} to win`;
+  $('io-btn').textContent='Now You Bat →';
+  $('innings-overlay').classList.add('show');
 }
 
 function bowlToCPU(bt){
@@ -576,29 +865,93 @@ function bowlToCPU(bt){
   animating=true;setBowlBtns(false);
   $('bowl-tag').textContent=`You: ${bt.label} · ${bt.desc}`;
   setField(bt.id);
-  let w=Math.min(.11*bt.wM,.5);
-  let p=[.18,.28,.22,.10,.12,.10];
-  p[4]*=bt.bdM;p[5]*=bt.bdM;
-  const ballsLeft=(MAX_OVERS-cOver)*6+(6-cBall);
-  if(ballsLeft>0&&(cpuTarget-cRuns)/ballsLeft>1.5){p[4]+=.06;p[5]+=.08;w+=.05;}
-  const s=p.reduce((a,b)=>a+b,0);if(s>0){const sc=(1-w)/s;p=p.map(v=>Math.max(0,v*sc));}
-  const isOut=Math.random()<w;
-  const outcome=isOut?'W':rollRuns(p);
-  animateBall(outcome,'bowl',()=>{applyCPUOutcome(outcome,bt.label);animating=false;});
+
+  // Extras check for player bowling
+  const wideChance=DELIVERY_WIDE[bt.id]||0;
+  const noballChance=DELIVERY_NOBALL[bt.id]||0;
+  if(Math.random()<wideChance){
+    // Wide
+    cRuns+=1;
+    $('comm-text').textContent=`${cOver}.${cBall} · ${bt.label} · WIDE — strays off!`;
+    addExtraChip('Wd');
+    $('mc-cpu').textContent=`${cRuns}/${cWkts}`;
+    updateDisplay(cRuns,cWkts,cOver,cBall);
+    updateRunRate();
+    if(cpuTarget&&cRuns>=cpuTarget){endMatch('cpu');return;}
+    animating=false;
+    setBowlBtns(true);
+    return;
+  }
+  if(Math.random()<noballChance){
+    // No-ball to CPU — +1 CPU run, CPU gets free hit next ball
+    cRuns+=1;
+    cpuFreehit=true;
+    addExtraChip('Nb');
+    $('bowl-tag').textContent=`You: ${bt.label} · ${bt.desc} — CPU FREE HIT`;
+    $('comm-text').textContent=`${cOver}.${cBall} · ${bt.label} · NO BALL! CPU gets a free hit!`;
+    $('mc-cpu').textContent=`${cRuns}/${cWkts}`;
+    updateDisplay(cRuns,cWkts,cOver,cBall);
+    updateRunRate();
+    if(cpuTarget&&cRuns>=cpuTarget){endMatch('cpu');return;}
+    // Fall through to normal delivery (ball not counted)
+    executeCPUBall(bt,true);
+    return;
+  }
+  executeCPUBall(bt,false);
 }
 
-function applyCPUOutcome(outcome,btName){
+function executeCPUBall(bt,isNoball){
+  const isFreeHit=cpuFreehit&&!isNoball;
+  if(isFreeHit)cpuFreehit=false;
+
+  let w=isFreeHit?0:Math.min(.11*bt.wM,.5);
+  let p=[.18,.28,.22,.10,.12,.10];
+  p[4]*=bt.bdM;p[5]*=bt.bdM;
+  const ballsLeft=(matchOvers-cOver)*6+(6-cBall);
+  if(ballsLeft>0&&cpuTarget&&(cpuTarget-cRuns)/ballsLeft>1.5){p[4]+=.06;p[5]+=.08;w+=isFreeHit?0:.05;}
+  const s=p.reduce((a,b)=>a+b,0);if(s>0){const sc=(1-w)/s;p=p.map(v=>Math.max(0,v*sc));}
+  const isOut=w>0&&Math.random()<w;
+  const outcome=isOut?'W':rollRuns(p);
+  const btName=bt.label;
+  if(isNoball){
+    // Ball not counted in over — just resolve and re-enable
+    if(outcome!=='W')cRuns+=outcome;
+    const ca=COMM[outcome==='W'?'cW':outcome===0?'c0':outcome]||COMM.c0;
+    $('comm-text').textContent=`${cOver}.${cBall} · CPU vs ${btName} · ${pick(ca)}`;
+    addChip(outcome==='W'?0:outcome);// no-ball W doesn't count
+    $('mc-cpu').textContent=`${cRuns}/${cWkts}`;
+    updateDisplay(cRuns,cWkts,cOver,cBall);
+    updateRunRate();
+    if(cpuTarget&&cRuns>=cpuTarget){endMatch('cpu');return;}
+    animating=false;
+    setBowlBtns(true);
+    return;
+  }
+  animateBall(outcome,'bowl',()=>{applyCPUOutcome(outcome,btName,isFreeHit);animating=false;});
+}
+
+function applyCPUOutcome(outcome,btName,wasFreeHit){
   cBall++;
   const ca=COMM[outcome==='W'?'cW':outcome===0?'c0':outcome]||COMM.c0;
   $('comm-text').textContent=`${cOver}.${cBall} · CPU vs ${btName} · ${pick(ca)}`;
   addChip(outcome);
   if(outcome==='W')cWkts++;else cRuns+=outcome;
-  if(cBall>=6){cBall=0;cOver++;if(cOver<=MAX_OVERS)$('ball-log').appendChild(makeSep());}
-  const need=Math.max(0,cpuTarget-cRuns);
-  $('sb-need').textContent=need||'WON';$('mc-cpu').textContent=`${cRuns}/${cWkts}`;
+  if(cBall>=6){cBall=0;cOver++;if(cOver<=matchOvers)$('ball-log').appendChild(makeSep());}
+  const need=cpuTarget?Math.max(0,cpuTarget-cRuns):null;
+  if(need!==null)$('sb-need').textContent=need||'WON';
+  $('mc-cpu').textContent=`${cRuns}/${cWkts}`;
   updateDisplay(cRuns,cWkts,cOver,cBall);
-  if(cRuns>=cpuTarget){endMatch('cpu');return;}
-  if(cWkts>=MAX_WICKETS||(cOver>MAX_OVERS&&cBall===0)){endMatch('player');return;}
+  updateRunRate();
+  if(cpuTarget&&cRuns>=cpuTarget){endMatch('cpu');return;}
+  if(cWkts>=MAX_WICKETS||(cOver>matchOvers&&cBall===0)){
+    if(playerBatsFirst){
+      endMatch('player');
+    }else{
+      // CPU was batting 1st and is done
+      endCPUFirstInnings();
+    }
+    return;
+  }
   setBowlBtns(true);
 }
 
@@ -608,12 +961,19 @@ function endMatch(winner){
   const gt=$('go-title'),gs=$('go-scores'),gd=$('go-detail');
   if(winner==='player'){
     gt.textContent='You Win!';gt.className='ov-title';
-    gs.textContent=`CPU ${cRuns}/${cWkts} — won by ${cpuTarget-1-cRuns} runs`;
+    gs.textContent=`CPU ${cRuns}/${cWkts} — won by ${(cpuTarget-1)-cRuns} runs`;
+  }else if(winner==='cpu_defended'){
+    gt.textContent='CPU Wins';gt.className='ov-title loss';
+    gs.textContent=`You needed ${cpuTarget} — fell short`;
   }else{
     gt.textContent='CPU Wins';gt.className='ov-title loss';
     gs.textContent=`CPU reached ${cpuTarget} — ${MAX_WICKETS-cWkts} wickets to spare`;
   }
-  gd.textContent=`You: ${pRuns}/${pWkts} · CPU: ${cRuns}/${cWkts}`;
+  if(playerBatsFirst){
+    gd.textContent=`You: ${pRuns}/${pWkts} · CPU: ${cRuns}/${cWkts}`;
+  }else{
+    gd.textContent=`CPU: ${cRuns}/${cWkts} · You: ${pRuns}/${pWkts}`;
+  }
 }
 
 // ANIMATION
@@ -647,8 +1007,8 @@ function animateBall(outcome,dir,cb){
 
 function updateDisplay(r,w,ov,bl){
   $('sb-runs').textContent=r;$('sb-wkts').textContent=w;
-  $('sb-over').textContent=Math.min(ov,MAX_OVERS);$('sb-ball').textContent=bl;
-  const left=MAX_OVERS-(ov-1);$('sb-left').textContent=`${Math.max(0,left)} left`;
+  $('sb-over').textContent=Math.min(ov,matchOvers||5);$('sb-ball').textContent=bl;
+  const left=(matchOvers||5)-(ov-1);$('sb-left').textContent=`${Math.max(0,left)} left`;
 }
 function addChip(outcome){const v=outcome==='W'?'W':outcome;const d=document.createElement('div');d.className=`bc bc-${v}`;d.textContent=v;$('ball-log').appendChild(d);}
 function makeSep(){const d=document.createElement('div');d.className='bc bc-sep';return d;}

@@ -206,6 +206,27 @@ body::before{
   position:absolute;width:16px;height:16px;border-radius:50%;
   background:radial-gradient(circle at 35% 35%,#e84040,#c0392b);
   box-shadow:0 2px 8px rgba(0,0,0,.5);z-index:10;display:none;transition:none;
+  will-change:transform,opacity;
+}
+/* ball flight trail */
+#ball-el::after{
+  content:'';position:absolute;inset:1px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,rgba(255,200,100,.9),transparent 70%);
+  opacity:0;transition:opacity .1s;
+}
+#ball-el.flying::after{opacity:1;}
+@keyframes ball-arc-four{
+  0%  {transform:translate(0,0)   scale(1);}
+  30% {transform:translate(var(--bx30),var(--by30)) scale(1.15);}
+  60% {transform:translate(var(--bx60),var(--by60)) scale(1.1);}
+  100%{transform:translate(var(--bx),var(--by))     scale(.9);opacity:.4;}
+}
+@keyframes ball-arc-six{
+  0%  {transform:translate(0,0)   scale(1);}
+  25% {transform:translate(var(--bx30),var(--by30)) scale(1.3);}
+  55% {transform:translate(var(--bx60),var(--by60)) scale(1.25);}
+  80% {transform:translate(var(--bxe),var(--bye))   scale(1.1);opacity:1;}
+  100%{transform:translate(var(--bx),var(--by))     scale(.7);opacity:0;}
 }
 #shot-pop{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
@@ -1109,25 +1130,101 @@ function animateBall(outcome,dir,cb){
   const startY=dir==='bat'?20:paR.height-46;
   const endY=dir==='bat'?paR.height-46:20;
   const be=$('ball-el'),bat=$('bat-el');
+
   be.style.cssText=`display:block;left:${cx}px;top:${startY}px;transition:none;opacity:1;`;
-  if(dir==='bat')bat.classList.add('swing');
-  setTimeout(()=>{be.style.transition='left .36s linear,top .36s linear';be.style.left=cx+'px';be.style.top=endY+'px';},30);
+  be.style.animation='none';
+  be.classList.remove('flying');
+
+  if(dir==='bat') bat.classList.add('swing');
+
+  /* bowl travel: straight down pitch */
   setTimeout(()=>{
-    if(outcome==='W'){
-      (dir==='bat'?['st-b1','st-b2','st-b3']:['st-w1','st-w2','st-w3']).forEach(id=>$(id)?.classList.add('fallen'));
-      be.style.transition='opacity .3s';be.style.opacity='0';
-    }else if(outcome>0){
-      const ang=(Math.random()*130-65)*Math.PI/180,dist=outcome>=4?180:90;
-      be.style.transition='left .42s ease-out,top .42s ease-out,opacity .42s';
-      be.style.left=(cx+Math.sin(ang)*dist)+'px';be.style.top=(endY-Math.cos(ang)*dist*.5)+'px';be.style.opacity='0';
-    }else{be.style.transition='opacity .3s';be.style.opacity='0';}
+    be.style.transition='left .32s linear,top .32s linear';
+    be.style.left=cx+'px';
+    be.style.top=endY+'px';
+  },30);
+
+  setTimeout(()=>{
     bat.classList.remove('swing');
+
+    if(outcome==='W'){
+      (dir==='bat'?['st-b1','st-b2','st-b3']:['st-w1','st-w2','st-w3'])
+        .forEach(id=>$(id)?.classList.add('fallen'));
+      be.style.transition='opacity .3s';
+      be.style.opacity='0';
+
+    } else if(outcome>=4){
+      /* arc flight to / past boundary */
+      const isSix=outcome===6;
+      const paW=paR.width, paH=paR.height;
+      const originX=cx+8, originY=endY+8; // ball centre relative to pitch-area
+
+      /* random outfield direction weighted toward squarish angles */
+      const angleDeg=(Math.random()*160-80);
+      const rad=angleDeg*Math.PI/180;
+      const sinA=Math.sin(rad), cosA=Math.cos(rad);
+
+      /* how far to the boundary circle and beyond */
+      const ropeR=Math.min(paW,paH)*0.48;
+      /* find t where the ray hits the boundary box */
+      const steps=[
+        paW/2 / Math.max(Math.abs(sinA),0.01),
+        paH/2 / Math.max(Math.abs(cosA),0.01)
+      ];
+      const toRope=Math.min(...steps)*0.92;
+      const toSix=Math.min(...steps)*1.35;
+
+      const rx=sinA*toRope, ry=-cosA*toRope*0.7;   // rope point
+      const sx=sinA*toSix,  sy=-cosA*toSix*0.7;    // six exit point
+      const endDist=isSix?toSix:toRope;
+      const ex=sinA*endDist, ey=-cosA*endDist*0.7;
+
+      /* intermediate arc control points */
+      const bx30=sinA*endDist*0.3+'px', by30=(-cosA*endDist*0.3*0.7 - paH*0.18)+'px';
+      const bx60=sinA*endDist*0.65+'px',by60=(-cosA*endDist*0.65*0.7 - paH*0.06)+'px';
+      const bxe=sx+'px', bye=sy+'px';
+
+      be.classList.add('flying');
+      be.style.setProperty('--bx30',bx30);
+      be.style.setProperty('--by30',by30);
+      be.style.setProperty('--bx60',bx60);
+      be.style.setProperty('--by60',by60);
+      be.style.setProperty('--bxe', bxe);
+      be.style.setProperty('--bye', bye);
+      be.style.setProperty('--bx',  ex+'px');
+      be.style.setProperty('--by',  ey+'px');
+
+      const dur=isSix?'0.72s':'0.58s';
+      be.style.animation=`${isSix?'ball-arc-six':'ball-arc-four'} ${dur} ease-out forwards`;
+
+    } else if(outcome>0){
+      /* 1/2/3 — short roll, no big arc */
+      const ang=(Math.random()*100-50)*Math.PI/180;
+      const dist=45+outcome*18;
+      be.style.transition=`left .38s ease-out,top .38s ease-out,opacity .38s`;
+      be.style.left=(cx+Math.sin(ang)*dist)+'px';
+      be.style.top=(endY-Math.cos(ang)*dist*.35)+'px';
+      be.style.opacity='0';
+    } else {
+      be.style.transition='opacity .25s';
+      be.style.opacity='0';
+    }
+
     const pop=$('shot-pop');
-    pop.textContent=outcome==='W'?'OUT!':outcome===0?'DOT':outcome===6?'SIX!':outcome===4?'FOUR!':`${outcome}`;
+    pop.textContent=outcome==='W'?'OUT!':outcome===0?'·':outcome===6?'SIX!':outcome===4?'FOUR!':`${outcome}`;
     pop.style.color=outcome==='W'?'#e74c3c':outcome>=4?'#f0c040':'rgba(255,255,255,.8)';
     pop.classList.add('show');
-    setTimeout(()=>{pop.classList.remove('show');be.style.display='none';be.style.opacity='1';cb();},1200);
-  },380);
+
+    const settle=outcome>=6?780:outcome===4?620:420;
+    setTimeout(()=>{
+      pop.classList.remove('show');
+      be.style.animation='none';
+      be.classList.remove('flying');
+      be.style.display='none';
+      be.style.opacity='1';
+      cb();
+    },settle+420);
+  },340);
 }
 
 function updateDisplay(r,w,ov,bl){

@@ -606,8 +606,9 @@ function rollRuns(p){const v=[0,1,2,3,4,6],r=Math.random();let c=0;for(let i=0;i
 let matchOvers,playerBatsFirst;
 let phase,pRuns,pWkts,pBall,pOver,cRuns,cWkts,cBall,cOver,cpuTarget,animating,formXP,formLevel,dots;
 let freehit,cpuFreehit;
-let consecutiveSixes=0;   // resets on any non-six outcome (inc wicket)
-let oversScalar=1;        // set at match start based on overs
+let consecutiveSixes=0;      // resets on any non-six outcome (inc wicket)
+let cpuConsecutiveSixes=0;   // same tracker for CPU
+let oversScalar=1;           // set at match start based on overs
 const $=id=>document.getElementById(id);
 
 /* ── SETUP / TOSS ── */
@@ -656,9 +657,10 @@ function startMatch(){
   matchOvers=selectedOvers;
   oversScalar = matchOvers===2 ? 0.65 : 1.0;
   consecutiveSixes=0;
+  cpuConsecutiveSixes=0;
   phase=playerBatsFirst?'batting':'bowling';
   pRuns=0;pWkts=0;pBall=0;pOver=1;
-  cRuns=0;cWkts=0;cBall=0;cOver=1;
+  cRuns=0;cWkts=0;cBall=0;cOver=1;cpuConsecutiveSixes=0;
   cpuTarget=null;animating=false;
   freehit=false;cpuFreehit=false;
   formXP=0;formLevel=0;dots=0;
@@ -1045,12 +1047,31 @@ function executeCPUBall(bt,isNoball){
   const isFreeHit=cpuFreehit&&!isNoball;
   if(isFreeHit)cpuFreehit=false;
 
-  let w=isFreeHit?0:Math.min(.09*bt.wM,.4);
-  let p=[.08,.20,.20,.14,.22,.16];
-  p[4]*=bt.bdM;p[5]*=bt.bdM;
+  // CPU picks a shot based on match situation
   const ballsLeft=(matchOvers-cOver)*6+(6-cBall);
-  if(ballsLeft>0&&cpuTarget&&(cpuTarget-cRuns)/ballsLeft>1.5){p[4]+=.08;p[5]+=.10;w+=isFreeHit?0:.04;}
-  const s=p.reduce((a,b)=>a+b,0);if(s>0){const sc=(1-w)/s;p=p.map(v=>Math.max(0,v*sc));}
+  const chasing=cpuTarget!==null;
+  const deficit=chasing?Math.max(0,cpuTarget-cRuns):0;
+  const rrRequired=ballsLeft>0?deficit/(ballsLeft/6):0;
+  // Under pressure CPU goes for more attacking shot
+  let shotIdx;
+  if(rrRequired>12||(!chasing&&ballsLeft<=6)) shotIdx=3;       // Six
+  else if(rrRequired>8||(!chasing&&ballsLeft<=12)) shotIdx=2;  // Four
+  else if(rrRequired>5) shotIdx=Math.random()<.5?2:1;          // Four/Drive mix
+  else shotIdx=Math.random()<.6?1:0;                           // Drive/Block mix
+
+  const cpuShot=SHOTS[shotIdx];
+  let w=cpuShot.bW*oversScalar*bt.wM;
+  if(cpuConsecutiveSixes>0){
+    const perSix=matchOvers===2?0.06:0.10;
+    w+=cpuConsecutiveSixes*perSix;
+  }
+  if(isFreeHit) w=0;
+  w=Math.min(w,.75);
+
+  let p=[...cpuShot.p];
+  p[4]*=bt.bdM; p[5]*=bt.bdM;
+  const s=p.reduce((a,b)=>a+b,0);
+  if(s>0){const sc=(1-w)/s;p=p.map(v=>Math.max(0,v*sc));}
   const isOut=w>0&&Math.random()<w;
   const outcome=isOut?'W':rollRuns(p);
   const btName=bt.label;
@@ -1078,14 +1099,15 @@ function applyCPUOutcome(outcome,btName,wasFreeHit){
   addChip(outcome);
   if(outcome==='W'){
     cWkts++;
+    cpuConsecutiveSixes=0;
     shakeScreen();
     wicketStreak++;
     if(wicketStreak===2)showStreak('⚡ Double Strike!','#5dade2');
     else if(wicketStreak===3)showStreak('🎯 Hat-trick Alert!','#e74c3c');
   }else{
     cRuns+=outcome;
-    if(outcome===6){flashBoundary(true);}
-    else if(outcome===4){flashBoundary(false);}
+    if(outcome===6){cpuConsecutiveSixes++;flashBoundary(true);}
+    else{cpuConsecutiveSixes=0;if(outcome===4)flashBoundary(false);}
   }
   updateMomentum(outcome,false);
   if(cBall>=6){cBall=0;cOver++;if(cOver<=matchOvers)$('ball-log').appendChild(makeSep());}

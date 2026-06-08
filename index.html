@@ -124,38 +124,35 @@ body::before{
 #pressure-label{font-size:.5rem;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);white-space:nowrap;}
 #pressure-desc{font-size:.5rem;letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;}
 
-/* ── INNINGS MINI ── */
-#innings-row{
-  flex-shrink:0;
-  display:flex;gap:8px;
+/* ── SCORE BAR ── */
+#score-bar{
+  flex-shrink:0;display:flex;align-items:center;gap:6px;
 }
-.inn-card{
-  flex:1;border-radius:8px;padding:5px 10px;
-  border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);
-  display:flex;justify-content:space-between;align-items:center;
+.sb-side{
+  flex:1;display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;padding:5px 10px;
 }
-.inn-label{font-size:.5rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.28);}
-.inn-val{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:rgba(255,255,255,.5);letter-spacing:1px;}
-.inn-val.active{color:#f0c040;}
-
-/* ── RUN RATE ROW ── */
+#sb-cpu{justify-content:flex-end;}
+.sb-name{font-size:.45rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.28);}
+.sb-score{font-family:'Bebas Neue',sans-serif;font-size:1.05rem;color:rgba(255,255,255,.4);letter-spacing:1px;}
+.sb-score.active{color:#f0c040;}
+#sb-center{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:52px;}
 #rr-row{
-  flex-shrink:0;
-  display:none;
+  flex-shrink:0;display:none;
   background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-  border-radius:8px;padding:5px 12px;
-  flex-direction:row;align-items:center;justify-content:space-between;
-  gap:10px;
+  border-radius:8px;padding:4px 12px;
+  flex-direction:row;align-items:center;justify-content:space-around;
 }
 #rr-row.show{display:flex;}
-.rr-chip{display:flex;flex-direction:column;align-items:center;gap:1px;}
-.rr-label{font-size:.45rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.28);}
-.rr-val{font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:1px;}
-.rr-val.crr{color:rgba(255,255,255,.6);}
+.rr-chip{display:flex;gap:5px;align-items:baseline;}
+.rr-label{font-size:.42rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.25);}
+.rr-val{font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:1px;}
+.rr-val.crr{color:rgba(255,255,255,.55);}
 .rr-val.rrr-ok{color:#58d68d;}
 .rr-val.rrr-warn{color:#e67e22;}
 .rr-val.rrr-high{color:#e74c3c;}
-#rr-need{font-size:.52rem;letter-spacing:1px;color:rgba(255,255,255,.35);text-align:center;}
+#rr-need{font-size:.48rem;letter-spacing:.5px;color:rgba(255,255,255,.3);text-align:center;}
 
 /* ── PITCH ── */
 #pitch-area{
@@ -261,11 +258,16 @@ body::before{
 .btn-label{font-size:.52rem;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.35);}
 .btn-range{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:#f0c040;line-height:1;}
 .bowl-btn .btn-range{color:#5dade2;font-size:1rem;}
-.btn-risk{font-size:.48rem;letter-spacing:1px;color:rgba(255,255,255,.2);}
-/* risk pips */
-.pips{display:flex;gap:2px;}
-.pip{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.1);}
-.pip.r{background:#e74c3c;}.pip.g{background:#58d68d;}
+.btn-risk{
+  font-size:.55rem;font-weight:600;letter-spacing:.5px;
+  padding:2px 5px;border-radius:4px;margin-top:2px;
+  background:rgba(0,0,0,.25);
+}
+.risk-safe{color:#58d68d;}
+.risk-warn{color:#e67e22;}
+.risk-danger{color:#e74c3c;}
+.risk-extreme{color:#ff4dff;}
+/* remove old pip styles */
 
 /* ── COMMENTARY ── */
 #commentary{
@@ -488,30 +490,24 @@ body::before{
     </div>
   </div>
 
-  <!-- INNINGS MINI -->
-  <div id="innings-row">
-    <div class="inn-card">
-      <span class="inn-label">You</span>
-      <span class="inn-val active" id="mc-you">batting</span>
+  <!-- SCORE BAR -->
+  <div id="score-bar">
+    <div class="sb-side" id="sb-you">
+      <span class="sb-name">YOU</span>
+      <span class="sb-score active" id="mc-you">batting</span>
     </div>
-    <div id="momentum-arrow" class="mom-neutral">◆</div>
-    <div class="inn-card">
-      <span class="inn-label">CPU</span>
-      <span class="inn-val" id="mc-cpu">–</span>
+    <div id="sb-center">
+      <div id="momentum-arrow" class="mom-neutral">◆</div>
+      <div id="rr-need"></div>
+    </div>
+    <div class="sb-side" id="sb-cpu">
+      <span class="sb-score" id="mc-cpu">–</span>
+      <span class="sb-name">CPU</span>
     </div>
   </div>
-
-  <!-- RUN RATE ROW -->
   <div id="rr-row">
-    <div class="rr-chip">
-      <div class="rr-label">CRR</div>
-      <div class="rr-val crr" id="rr-crr">–</div>
-    </div>
-    <div id="rr-need">–</div>
-    <div class="rr-chip">
-      <div class="rr-label">RRR</div>
-      <div class="rr-val rrr-ok" id="rr-rrr">–</div>
-    </div>
+    <div class="rr-chip"><div class="rr-label">CRR</div><div class="rr-val crr" id="rr-crr">–</div></div>
+    <div class="rr-chip"><div class="rr-label">RRR</div><div class="rr-val rrr-ok" id="rr-rrr">–</div></div>
   </div>
 
   <!-- PITCH -->
@@ -568,10 +564,10 @@ const FORM_LEVELS=[
 ];
 
 const SHOTS=[
-  {id:'block',label:'Block',range:'0–1',  bW:.03,p:[.28,.48,.16,.08,.00,.00],risk:1,reward:1},
-  {id:'drive',label:'Drive',range:'1–3',  bW:.06,p:[.07,.26,.32,.22,.10,.03],risk:2,reward:2},
-  {id:'four', label:'Four', range:'4',    bW:.11,p:[.05,.07,.10,.08,.58,.12],risk:3,reward:4},
-  {id:'six',  label:'Six',  range:'6',    bW:.18,p:[.04,.04,.04,.04,.14,.70],risk:5,reward:5},
+  {id:'block',label:'Block',range:'0–1', bW:.04, p:[.32,.46,.14,.06,.01,.01], risk:1, reward:1},
+  {id:'drive',label:'Drive',range:'1–4', bW:.10, p:[.06,.24,.30,.18,.14,.04], risk:2, reward:2},
+  {id:'four', label:'Four', range:'4',   bW:.20, p:[.04,.06,.09,.07,.60,.10], risk:3, reward:4},
+  {id:'six',  label:'Six',  range:'6',   bW:.38, p:[.03,.03,.04,.03,.12,.72], risk:5, reward:5},
 ];
 
 const BOWL_TYPES=[
@@ -610,6 +606,8 @@ function rollRuns(p){const v=[0,1,2,3,4,6],r=Math.random();let c=0;for(let i=0;i
 let matchOvers,playerBatsFirst;
 let phase,pRuns,pWkts,pBall,pOver,cRuns,cWkts,cBall,cOver,cpuTarget,animating,formXP,formLevel,dots;
 let freehit,cpuFreehit;
+let consecutiveSixes=0;   // resets on any non-six outcome (inc wicket)
+let oversScalar=1;        // set at match start based on overs
 const $=id=>document.getElementById(id);
 
 /* ── SETUP / TOSS ── */
@@ -656,6 +654,8 @@ function initGame(){
 function startMatch(){
   $('setup-overlay').classList.remove('show');
   matchOvers=selectedOvers;
+  oversScalar = matchOvers===2 ? 0.65 : 1.0;
+  consecutiveSixes=0;
   phase=playerBatsFirst?'batting':'bowling';
   pRuns=0;pWkts=0;pBall=0;pOver=1;
   cRuns=0;cWkts=0;cBall=0;cOver=1;
@@ -666,9 +666,9 @@ function startMatch(){
   $('pitch-area').style.background='';
   $('momentum-arrow').className='mom-neutral';
   $('mc-you').textContent=playerBatsFirst?'batting':'bowling';
-  $('mc-you').className='inn-val active';
+  $('mc-you').className='sb-score active';
   $('mc-cpu').textContent=playerBatsFirst?'–':'batting';
-  $('mc-cpu').className=playerBatsFirst?'inn-val':'inn-val active';
+  $('mc-cpu').className=playerBatsFirst?'sb-score':'sb-score active';
   $('ball-log').innerHTML='';$('bowl-tag').textContent='';
   $('sb-target').textContent='–';$('sb-need').textContent='–';
   $('status-strip').style.display=playerBatsFirst?'':'none';
@@ -776,13 +776,19 @@ function buildShotGrid(){
   const g=$('shot-grid');g.innerHTML='';
   SHOTS.forEach(s=>{
     const fl=FORM_LEVELS[formLevel];
-    const effW=Math.min(s.bW*fl.wMult*1.12,.55);
+    const pressure=calcPressure();
+    let bW=s.bW*oversScalar*fl.wMult;
+    if(consecutiveSixes>0){
+      const perSix=matchOvers===2?0.06:0.10;
+      bW+=consecutiveSixes*perSix;
+    }
+    if(pressure>.5) bW+=pressure*.04;
+    bW=Math.min(bW,.75);
+    const pct=Math.round(bW*100);
+    const riskCls=pct<15?'risk-safe':pct<30?'risk-warn':pct<50?'risk-danger':'risk-extreme';
     const btn=document.createElement('button');
     btn.className='shot-btn';
-    let pips='<div class="pips">';
-    for(let i=0;i<5;i++)pips+=`<div class="pip ${i<s.risk?'r':''}"></div>`;
-    pips+='</div>';
-    btn.innerHTML=`<span class="btn-label">${s.label}</span><span class="btn-range">${s.range}</span>${pips}<span class="btn-risk">${Math.round(effW*100)}% W</span>`;
+    btn.innerHTML=`<span class="btn-label">${s.label}</span><span class="btn-range">${s.range}</span><span class="btn-risk ${riskCls}">${pct}% out</span>`;
     btn.onclick=()=>playShot(s);
     g.appendChild(btn);
   });
@@ -856,13 +862,27 @@ function playShot(shot){
 function executePlayerShot(shot,bt){
   const fl=FORM_LEVELS[formLevel];
   const pressure=calcPressure();
-  let bW=freehit?0:Math.min(shot.bW*fl.wMult*bt.wM,.55);
+  // Base risk scaled by overs format
+  let bW=shot.bW * oversScalar;
+  // Form multiplier
+  bW *= fl.wMult;
+  // Bowler type multiplier
+  bW *= bt.wM;
+  // Each consecutive six adds escalating extra risk (more brutal for 5-over)
+  if(consecutiveSixes>0){
+    const perSix = matchOvers===2 ? 0.06 : 0.10;
+    bW += consecutiveSixes * perSix;
+  }
+  // Pressure bump
+  if(pressure>.5) bW += pressure*.04;
+  // Free hit
+  if(freehit) bW=0;
+  bW=Math.min(bW,.75);
+
   let p=[...shot.p];
-  p[4]*=fl.bBoost*bt.bdM;p[5]*=fl.bBoost*bt.bdM;
-  if(pressure>.5){const sp=pressure*.04;bW+=sp;p[5]+=sp*.4;p[0]+=sp*.4;p[1]-=sp*.4;}
-  if(freehit)bW=0;
+  p[4]*=fl.bBoost*bt.bdM; p[5]*=fl.bBoost*bt.bdM;
   const sum=p.reduce((a,b)=>a+b,0);
-  if(sum>0){const sc=(1-bW)/sum;p=p.map(v=>Math.max(0,v*sc));}
+  if(sum>0){const sc=(1-bW)/sum; p=p.map(v=>Math.max(0,v*sc));}
   const isOut=bW>0&&Math.random()<bW;
   const outcome=isOut?'W':rollRuns(p);
   animateBall(outcome,'bat',()=>{applyBatOutcome(outcome,shot.label,bt);animating=false;});
@@ -894,6 +914,12 @@ function applyBatOutcome(outcome,shotName,bt){
   }else{
     sixStreak=0;
   }
+  // consecutiveSixes tracking
+  if(outcome===6){
+    consecutiveSixes++;
+  } else {
+    consecutiveSixes=0;
+  }
   updateMomentum(outcome,true);
   $('comm-text').textContent=`${pOver}.${pBall} · ${shotName} vs ${bt.label} · ${pick(COMM[outcome==='W'?'W':outcome])}`;
   addChip(outcome);
@@ -909,7 +935,7 @@ function applyBatOutcome(outcome,shotName,bt){
 function endCurrentInnings(){
   if(playerBatsFirst){
     // Player just finished batting (1st innings), now player bowls
-    $('mc-you').textContent=`${pRuns}/${pWkts}`;$('mc-you').className='inn-val';
+    $('mc-you').textContent=`${pRuns}/${pWkts}`;$('mc-you').className='sb-score';
     cpuTarget=pRuns+1;
     $('io-sub').textContent='Your innings is over';
     $('io-score').textContent=`You scored ${pRuns}/${pWkts}`;
@@ -933,8 +959,8 @@ function startSecondInnings(){
     phase='bowling';
     resetStumps();$('ball-log').innerHTML='';
     $('sb-target').textContent=cpuTarget;$('sb-need').textContent=cpuTarget;
-    $('mc-cpu').textContent='0/0';$('mc-cpu').className='inn-val active';
-    $('mc-you').textContent=`${pRuns}/${pWkts}`;$('mc-you').className='inn-val';
+    $('mc-cpu').textContent='0/0';$('mc-cpu').className='sb-score active';
+    $('mc-you').textContent=`${pRuns}/${pWkts}`;$('mc-you').className='sb-score';
     $('shot-grid').style.display='none';$('bowl-grid').style.display='grid';
     $('status-strip').style.display='none';
     setBanner('bowling','2nd Inn · You Bowl');
@@ -948,8 +974,8 @@ function startSecondInnings(){
     phase='batting';
     cpuTarget=cRuns+1;
     resetStumps();$('ball-log').innerHTML='';
-    $('mc-you').textContent='batting';$('mc-you').className='inn-val active';
-    $('mc-cpu').textContent=`${cRuns}/${cWkts}`;$('mc-cpu').className='inn-val';
+    $('mc-you').textContent='batting';$('mc-you').className='sb-score active';
+    $('mc-cpu').textContent=`${cRuns}/${cWkts}`;$('mc-cpu').className='sb-score';
     $('shot-grid').style.display='grid';$('bowl-grid').style.display='none';
     $('status-strip').style.display='';
     $('sb-target').textContent=cpuTarget;
@@ -966,7 +992,7 @@ function startSecondInnings(){
 
 function endCPUFirstInnings(){
   // CPU just finished batting 1st innings, player now chases
-  $('mc-cpu').textContent=`${cRuns}/${cWkts}`;$('mc-cpu').className='inn-val';
+  $('mc-cpu').textContent=`${cRuns}/${cWkts}`;$('mc-cpu').className='sb-score';
   $('io-sub').textContent="CPU's innings is over";
   $('io-score').textContent=`CPU scored ${cRuns}/${cWkts}`;
   const need=cRuns+1;

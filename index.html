@@ -273,6 +273,59 @@ body::before{
   background:#f0c040;color:#0f0f1e;box-shadow:0 4px 20px rgba(240,192,64,.4);margin-top:4px;
 }
 
+/* ── VISUAL DRAMA ── */
+@keyframes particle-fly {
+  0%   { transform:translate(0,0) scale(1); opacity:1; }
+  100% { transform:translate(var(--dx),var(--dy)) scale(0); opacity:0; }
+}
+.particle {
+  position:absolute;border-radius:50%;pointer-events:none;z-index:30;
+  animation:particle-fly .8s ease-out forwards;
+}
+
+@keyframes screenshake {
+  0%,100%{transform:translateX(0);}
+  15%{transform:translateX(-7px) translateY(3px);}
+  30%{transform:translateX(6px) translateY(-3px);}
+  45%{transform:translateX(-5px) translateY(2px);}
+  60%{transform:translateX(4px) translateY(-1px);}
+  75%{transform:translateX(-2px);}
+}
+#app.shake{animation:screenshake .45s ease-out;}
+
+@keyframes rope-four {
+  0%,100%{box-shadow:inset 0 0 0 0 transparent;}
+  40%{box-shadow:inset 0 0 0 4px #f0c040,0 0 22px rgba(240,192,64,.55);}
+}
+@keyframes rope-six {
+  0%,100%{box-shadow:inset 0 0 0 0 transparent;}
+  25%,65%{box-shadow:inset 0 0 0 5px #fff,0 0 34px rgba(255,255,255,.75);}
+}
+#pitch-area.flash-four{animation:rope-four .55s ease;}
+#pitch-area.flash-six{animation:rope-six .65s ease;}
+
+#streak-banner{
+  position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:4px;
+  color:#f0c040;text-shadow:0 0 24px rgba(240,192,64,.9);
+  opacity:0;pointer-events:none;z-index:26;text-align:center;white-space:nowrap;
+}
+#streak-banner.show{animation:streak-pop 1.9s ease-out forwards;}
+@keyframes streak-pop{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.6);}
+  18%{opacity:1;transform:translate(-50%,-58%) scale(1.15);}
+  65%{opacity:1;transform:translate(-50%,-58%) scale(1);}
+  100%{opacity:0;transform:translate(-50%,-70%) scale(.9);}
+}
+
+#momentum-arrow{
+  font-size:.7rem;transition:color .6s,transform .6s;
+  flex-shrink:0;opacity:.6;
+}
+.mom-neutral{color:rgba(255,255,255,.2);}
+.mom-you{color:#f0c040;transform:scale(1.3);}
+.mom-cpu{color:#5dade2;transform:scale(1.3);}
+
 /* ── SETUP OVERLAY ── */
 #setup-overlay{
   display:none;position:fixed;inset:0;
@@ -407,6 +460,7 @@ body::before{
       <span class="inn-label">You</span>
       <span class="inn-val active" id="mc-you">batting</span>
     </div>
+    <div id="momentum-arrow" class="mom-neutral">◆</div>
     <div class="inn-card">
       <span class="inn-label">CPU</span>
       <span class="inn-val" id="mc-cpu">–</span>
@@ -443,6 +497,7 @@ body::before{
     <div id="bat-el"></div>
     <div id="ball-el"></div>
     <div id="shot-pop"></div>
+    <div id="streak-banner"></div>
   </div>
 
   <!-- BOWL TAG -->
@@ -573,6 +628,9 @@ function startMatch(){
   cpuTarget=null;animating=false;
   freehit=false;cpuFreehit=false;
   formXP=0;formLevel=0;dots=0;
+  sixStreak=0;wicketStreak=0;momentumLog=[];
+  $('pitch-area').style.background='';
+  $('momentum-arrow').className='mom-neutral';
   $('mc-you').textContent=playerBatsFirst?'batting':'bowling';
   $('mc-you').className='inn-val active';
   $('mc-cpu').textContent=playerBatsFirst?'–':'batting';
@@ -637,6 +695,7 @@ function updateSituationUI(){
   $('pressure-fill').style.background=col;
   $('pressure-desc').textContent=desc;$('pressure-desc').style.color=col;
   $('fe-sit').textContent=desc;$('fe-sit').style.color=col;
+  updatePitchMood(p);
 }
 
 /* ── RUN RATE ── */
@@ -780,8 +839,28 @@ function applyBatOutcome(outcome,shotName,bt){
   freehit=false;
   $('freehit-badge').classList.remove('show');
   pBall++;
-  if(outcome==='W'){pWkts++;resetForm();}
-  else{pRuns+=outcome;addFormXP(outcome);if(outcome>=4)flashField(bt.id);}
+  if(outcome==='W'){
+    pWkts++;resetForm();
+    shakeScreen();
+    wicketStreak=0;
+  }else{
+    pRuns+=outcome;addFormXP(outcome);if(outcome>=4)flashField(bt.id);
+  }
+  // Six streak
+  if(outcome===6){
+    sixStreak++;
+    spawnParticles();
+    flashBoundary(true);
+    if(sixStreak===2)showStreak('🔥 Back-to-back Sixes!');
+    else if(sixStreak===3)showStreak('🔥🔥🔥 Three in a Row!','#e74c3c');
+    else if(sixStreak>3)showStreak(`🔥×${sixStreak}`,'#e74c3c');
+  }else if(outcome===4){
+    sixStreak=0;
+    flashBoundary(false);
+  }else{
+    sixStreak=0;
+  }
+  updateMomentum(outcome,true);
   $('comm-text').textContent=`${pOver}.${pBall} · ${shotName} vs ${bt.label} · ${pick(COMM[outcome==='W'?'W':outcome])}`;
   addChip(outcome);
   if(pBall>=6){pBall=0;pOver++;if(pOver<=matchOvers)$('ball-log').appendChild(makeSep());}
@@ -812,6 +891,9 @@ function endCurrentInnings(){
 /* ── CPU INNINGS (player bowls) ── */
 function startSecondInnings(){
   $('innings-overlay').classList.remove('show');
+  sixStreak=0;wicketStreak=0;momentumLog=[];
+  $('pitch-area').style.background='';
+  $('momentum-arrow').className='mom-neutral';
   if(playerBatsFirst){
     // CPU now bats (2nd innings)
     phase='bowling';
@@ -934,7 +1016,18 @@ function applyCPUOutcome(outcome,btName,wasFreeHit){
   const ca=COMM[outcome==='W'?'cW':outcome===0?'c0':outcome]||COMM.c0;
   $('comm-text').textContent=`${cOver}.${cBall} · CPU vs ${btName} · ${pick(ca)}`;
   addChip(outcome);
-  if(outcome==='W')cWkts++;else cRuns+=outcome;
+  if(outcome==='W'){
+    cWkts++;
+    shakeScreen();
+    wicketStreak++;
+    if(wicketStreak===2)showStreak('⚡ Double Strike!','#5dade2');
+    else if(wicketStreak===3)showStreak('🎯 Hat-trick Alert!','#e74c3c');
+  }else{
+    cRuns+=outcome;
+    if(outcome===6){flashBoundary(true);}
+    else if(outcome===4){flashBoundary(false);}
+  }
+  updateMomentum(outcome,false);
   if(cBall>=6){cBall=0;cOver++;if(cOver<=matchOvers)$('ball-log').appendChild(makeSep());}
   const need=cpuTarget?Math.max(0,cpuTarget-cRuns):null;
   if(need!==null)$('sb-need').textContent=need||'WON';
@@ -1013,6 +1106,77 @@ function addChip(outcome){const v=outcome==='W'?'W':outcome;const d=document.cre
 function makeSep(){const d=document.createElement('div');d.className='bc bc-sep';return d;}
 function resetStumps(){document.querySelectorAll('.stump').forEach(s=>s.classList.remove('fallen'));}
 function setBanner(cls,txt){const b=$('phase-banner');b.className=`phase-banner ${cls}`;b.textContent=txt;}
+
+/* ── VISUAL DRAMA STATE ── */
+let sixStreak=0,wicketStreak=0,momentumLog=[];
+
+/* ── PARTICLE BURST ── */
+function spawnParticles(){
+  const pa=$('pitch-area');
+  const paW=pa.offsetWidth,paH=pa.offsetHeight;
+  const cx=paW/2,cy=paH*0.65;
+  const colors=['#f0c040','#e74c3c','#5dade2','#58d68d','#e67e22','#fff'];
+  for(let i=0;i<22;i++){
+    const el=document.createElement('div');
+    el.className='particle';
+    const size=5+Math.random()*5;
+    const dx=(Math.random()*240-120)+'px';
+    const dy=(Math.random()*240-120)+'px';
+    const col=colors[Math.floor(Math.random()*colors.length)];
+    el.style.cssText=`width:${size}px;height:${size}px;background:${col};left:${cx-size/2}px;top:${cy-size/2}px;--dx:${dx};--dy:${dy};`;
+    pa.appendChild(el);
+    setTimeout(()=>el.remove(),900);
+  }
+}
+
+/* ── SCREEN SHAKE ── */
+function shakeScreen(){
+  const app=$('app');
+  app.classList.remove('shake');
+  void app.offsetWidth;
+  app.classList.add('shake');
+}
+
+/* ── PITCH MOOD ── */
+function updatePitchMood(pressure){
+  const r=Math.round(45+pressure*(100-45));
+  const g=Math.round(90+pressure*(28-90));
+  const b=Math.round(39+pressure*(18-39));
+  $('pitch-area').style.background=`rgb(${r},${g},${b})`;
+}
+
+/* ── BOUNDARY FLASH ── */
+function flashBoundary(isSix){
+  const pa=$('pitch-area');
+  pa.classList.remove('flash-four','flash-six');
+  void pa.offsetWidth;
+  pa.classList.add(isSix?'flash-six':'flash-four');
+  setTimeout(()=>pa.classList.remove('flash-four','flash-six'),isSix?700:600);
+}
+
+/* ── STREAK BANNER ── */
+function showStreak(text,color){
+  const el=$('streak-banner');
+  el.textContent=text;
+  el.style.color=color||'#f0c040';
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+}
+
+/* ── MOMENTUM ARROW ── */
+function updateMomentum(outcome,playerScored){
+  let val;
+  if(outcome==='W'){val=playerScored?-3:3;}
+  else{val=playerScored?outcome:-outcome;}
+  momentumLog.push(val);
+  if(momentumLog.length>5)momentumLog.shift();
+  const sum=momentumLog.reduce((a,b)=>a+b,0);
+  const arrow=$('momentum-arrow');
+  if(sum>1){arrow.className='mom-you';}
+  else if(sum<-1){arrow.className='mom-cpu';}
+  else{arrow.className='mom-neutral';}
+}
 
 initGame();
 </script>

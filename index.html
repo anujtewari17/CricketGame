@@ -620,6 +620,19 @@ let freehit,cpuFreehit;
 let consecutiveSixes=0;      // resets on any non-six outcome (inc wicket)
 let cpuConsecutiveSixes=0;   // same tracker for CPU
 let oversScalar=1;           // set at match start based on overs
+
+// CPU cross-match form — persisted in localStorage
+function getCPULossStreak(){return parseInt(localStorage.getItem('cpuLossStreak')||'0');}
+function setCPULossStreak(n){localStorage.setItem('cpuLossStreak',n);}
+function cpuFormBoostFromStreak(streak){
+  if(streak<=0) return {wMult:1.0, bdBoost:1.0, aggr:0,    label:null};
+  if(streak===1) return {wMult:0.88,bdBoost:1.10,aggr:0.05, label:'CPU is hungry'};
+  if(streak===2) return {wMult:0.78,bdBoost:1.22,aggr:0.12, label:'CPU is fired up 🔥'};
+  if(streak===3) return {wMult:0.68,bdBoost:1.35,aggr:0.20, label:'CPU is desperate 😤'};
+  return                {wMult:0.55,bdBoost:1.50,aggr:0.28, label:'CPU is on a RAMPAGE 💀'};
+}
+function cpuFormBoost(){return cpuFormBoostFromStreak(getCPULossStreak());}
+
 const $=id=>document.getElementById(id);
 
 /* ── SETUP / TOSS ── */
@@ -708,12 +721,14 @@ function startMatch(){
     $('shot-grid').style.display='grid';$('bowl-grid').style.display='none';
     setBanner('batting','1st Inn · You Bat');
     updateDisplay(0,0,1,0);updateFormUI();updateSituationUI();
-    $('comm-text').textContent=`You bat first — ${matchOvers} overs. Build form, then go big.`;
+    const fb=cpuFormBoost();
+    $('comm-text').textContent=`You bat first — ${matchOvers} overs.${fb.label?' ⚠ '+fb.label+'.':''}`;
   }else{
     $('shot-grid').style.display='none';$('bowl-grid').style.display='grid';
     setBanner('bowling','1st Inn · You Bowl');
     updateDisplay(0,0,1,0);
-    $('comm-text').textContent=`CPU bats first — ${matchOvers} overs. Keep them low!`;
+    const fb2=cpuFormBoost();
+    $('comm-text').textContent=`CPU bats first — ${matchOvers} overs.${fb2.label?' ⚠ '+fb2.label+'.':' Keep them low!'}`;
     $('bowl-tag').textContent='';
     ALL_ZONES.forEach(z=>$('fd-'+z.id)?.classList.remove('on'));
   }
@@ -1074,29 +1089,29 @@ function executeCPUBall(bt,isNoball){
   const isFreeHit=cpuFreehit&&!isNoball;
   if(isFreeHit)cpuFreehit=false;
 
-  // CPU picks a shot based on match situation
+  // CPU picks a shot — aggression boosted by cross-match loss streak
   const ballsLeft=(matchOvers-cOver)*6+(6-cBall);
   const chasing=cpuTarget!==null;
   const deficit=chasing?Math.max(0,cpuTarget-cRuns):0;
   const rrRequired=ballsLeft>0?deficit/(ballsLeft/6):0;
-  const r=Math.random();
+  const boost=cpuFormBoost();
+  const r=Math.random()-boost.aggr; // shift random toward lower = more attacking shots
   let shotIdx;
   if(chasing){
-    // calibrate aggression to what's actually needed
-    if(rrRequired>14)      shotIdx=3;                             // must six every ball
-    else if(rrRequired>10) shotIdx=r<.65?3:2;                    // mostly six
-    else if(rrRequired>7)  shotIdx=r<.35?3:r<.75?2:1;           // six/four mix
-    else if(rrRequired>4)  shotIdx=r<.15?3:r<.50?2:r<.85?1:0;  // measured
-    else                   shotIdx=r<.05?3:r<.25?2:r<.70?1:0;  // comfortable, no risks
+    if(rrRequired>14)      shotIdx=3;
+    else if(rrRequired>10) shotIdx=r<.65?3:2;
+    else if(rrRequired>7)  shotIdx=r<.35?3:r<.75?2:1;
+    else if(rrRequired>4)  shotIdx=r<.15?3:r<.50?2:r<.85?1:0;
+    else                   shotIdx=r<.05?3:r<.25?2:r<.70?1:0;
   } else {
-    // batting first — build sensibly, only accelerate at end
-    if(ballsLeft<=3)       shotIdx=r<.45?3:r<.80?2:1;           // death overs, go big
-    else if(ballsLeft<=6)  shotIdx=r<.20?3:r<.55?2:r<.85?1:0;  // push in last over
-    else                   shotIdx=r<.08?3:r<.28?2:r<.68?1:0;  // early overs, build
+    if(ballsLeft<=3)       shotIdx=r<.45?3:r<.80?2:1;
+    else if(ballsLeft<=6)  shotIdx=r<.20?3:r<.55?2:r<.85?1:0;
+    else                   shotIdx=r<.08?3:r<.28?2:r<.68?1:0;
   }
 
   const cpuShot=SHOTS[shotIdx];
-  let w=cpuShot.bW*oversScalar*bt.wM;
+  const boost=cpuFormBoost();
+  let w=cpuShot.bW*oversScalar*bt.wM*boost.wMult;
   if(cpuConsecutiveSixes>0){
     const perSix=matchOvers===2?0.06:0.10;
     w+=cpuConsecutiveSixes*perSix;
@@ -1105,7 +1120,7 @@ function executeCPUBall(bt,isNoball){
   w=Math.min(w,.75);
 
   let p=[...cpuShot.p];
-  p[4]*=bt.bdM; p[5]*=bt.bdM;
+  p[4]*=bt.bdM*boost.bdBoost; p[5]*=bt.bdM*boost.bdBoost;
   const s=p.reduce((a,b)=>a+b,0);
   if(s>0){const sc=(1-w)/s;p=p.map(v=>Math.max(0,v*sc));}
   const isOut=w>0&&Math.random()<w;
@@ -1169,7 +1184,15 @@ function applyCPUOutcome(outcome,btName,wasFreeHit){
 function endMatch(winner){
   phase='end';$('gameover').classList.add('show');
   const gt=$('go-title'),gs=$('go-scores'),gd=$('go-detail');
-  if(winner==='player'){
+  const playerWon=winner==='player';
+  // Update CPU loss streak
+  const streak=getCPULossStreak();
+  const newStreak=playerWon?streak+1:0;
+  setCPULossStreak(newStreak);
+  // Next match boost preview
+  const nextBoost=cpuFormBoostFromStreak(newStreak);
+
+  if(playerWon){
     gt.textContent='You Win!';gt.className='ov-title';
     gs.textContent=`CPU ${cRuns}/${cWkts} — won by ${(cpuTarget-1)-cRuns} runs`;
   }else if(winner==='cpu_defended'){
@@ -1183,6 +1206,18 @@ function endMatch(winner){
     gd.textContent=`You: ${pRuns}/${pWkts} · CPU: ${cRuns}/${cWkts}`;
   }else{
     gd.textContent=`CPU: ${cRuns}/${cWkts} · You: ${pRuns}/${pWkts}`;
+  }
+  // Show CPU form warning for next match
+  if(nextBoost.label){
+    const warn=document.createElement('div');
+    warn.style.cssText='margin-top:8px;font-size:.6rem;letter-spacing:1px;color:#e74c3c;text-transform:uppercase;';
+    warn.textContent=`Next match: ${nextBoost.label}`;
+    $('go-detail').after(warn);
+  }else if(!playerWon){
+    const calm=document.createElement('div');
+    calm.style.cssText='margin-top:8px;font-size:.6rem;letter-spacing:1px;color:#58d68d;text-transform:uppercase;';
+    calm.textContent='CPU calms down — back to normal';
+    $('go-detail').after(calm);
   }
 }
 

@@ -390,6 +390,13 @@ body::before{
   font-size:.7rem;letter-spacing:2px;color:rgba(255,255,255,.55);
   min-height:18px;text-transform:uppercase;
 }
+#toss-choice{display:flex;gap:10px;margin-top:4px;}
+.toss-choice-btn{
+  font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:3px;
+  padding:10px 22px;border-radius:10px;border:2px solid #f0c040;cursor:pointer;
+  background:transparent;color:#f0c040;transition:background .15s;
+}
+.toss-choice-btn:hover{background:rgba(240,192,64,.15);}
 #toss-coin{
   font-size:2.8rem;transition:transform .4s;
 }
@@ -414,6 +421,10 @@ body::before{
   <div id="toss-coin">🪙</div>
   <div id="toss-result"></div>
   <button id="toss-btn" onclick="doToss()">Flip Coin 🪙</button>
+  <div id="toss-choice" style="display:none">
+    <button class="toss-choice-btn" onclick="chooseBat()">Bat First</button>
+    <button class="toss-choice-btn" onclick="chooseBowl()">Bowl First</button>
+  </div>
   <button id="play-btn" onclick="startMatch()">Let's Play →</button>
 </div>
 
@@ -622,17 +633,32 @@ function selectOvers(n){
 }
 
 function doToss(){
-  const coin=Math.random()<.5;// true=player wins
-  const playerWins=coin;
-  playerBatsFirst=playerWins;
+  const playerWins=Math.random()<.5;
   matchOvers=selectedOvers;
-  // animate coin
   $('toss-coin').style.transform='rotateY(720deg) scale(1.3)';
   setTimeout(()=>{$('toss-coin').style.transform='';},400);
-  const side=coin?'Heads':'Tails';
-  const batFirst=playerWins?'You bat first':'CPU bats first';
-  $('toss-result').textContent=`${side} — ${batFirst}`;
+  const side=playerWins?'Heads':'Tails';
   $('toss-btn').style.display='none';
+  if(playerWins){
+    $('toss-result').textContent=`${side} — You won! Choose:`;
+    $('toss-choice').style.display='flex';
+  }else{
+    playerBatsFirst=Math.random()<.5;// CPU randomly chooses
+    const cpuChoice=playerBatsFirst?'CPU chose to bowl':'CPU chose to bat';
+    $('toss-result').textContent=`${side} — ${cpuChoice}`;
+    $('play-btn').style.display='block';
+  }
+}
+function chooseBat(){
+  playerBatsFirst=true;
+  $('toss-choice').style.display='none';
+  $('toss-result').textContent='You chose to bat first';
+  $('play-btn').style.display='block';
+}
+function chooseBowl(){
+  playerBatsFirst=false;
+  $('toss-choice').style.display='none';
+  $('toss-result').textContent='You chose to bowl first';
   $('play-btn').style.display='block';
 }
 
@@ -646,6 +672,7 @@ function initGame(){
   $('toss-coin').textContent='🪙';
   $('toss-coin').style.transform='';
   $('toss-btn').style.display='block';
+  $('toss-choice').style.display='none';
   $('play-btn').style.display='none';
   $('setup-overlay').classList.add('show');
   $('innings-overlay').classList.remove('show');
@@ -1047,17 +1074,17 @@ function executeCPUBall(bt,isNoball){
   const isFreeHit=cpuFreehit&&!isNoball;
   if(isFreeHit)cpuFreehit=false;
 
-  // CPU picks a shot based on match situation
+  // CPU picks a shot based on match situation — T20 mindset, always attacking
   const ballsLeft=(matchOvers-cOver)*6+(6-cBall);
   const chasing=cpuTarget!==null;
   const deficit=chasing?Math.max(0,cpuTarget-cRuns):0;
   const rrRequired=ballsLeft>0?deficit/(ballsLeft/6):0;
-  // Under pressure CPU goes for more attacking shot
+  const r=Math.random();
   let shotIdx;
-  if(rrRequired>12||(!chasing&&ballsLeft<=6)) shotIdx=3;       // Six
-  else if(rrRequired>8||(!chasing&&ballsLeft<=12)) shotIdx=2;  // Four
-  else if(rrRequired>5) shotIdx=Math.random()<.5?2:1;          // Four/Drive mix
-  else shotIdx=Math.random()<.6?1:0;                           // Drive/Block mix
+  if(rrRequired>12||(!chasing&&ballsLeft<=4)) shotIdx=3;          // Six
+  else if(rrRequired>7||(!chasing&&ballsLeft<=8)) shotIdx=r<.6?3:2; // Six/Four
+  else if(rrRequired>4||!chasing) shotIdx=r<.35?3:r<.7?2:1;        // aggressive mix
+  else shotIdx=r<.25?3:r<.55?2:r<.85?1:0;                          // still attacking when chasing easy
 
   const cpuShot=SHOTS[shotIdx];
   let w=cpuShot.bW*oversScalar*bt.wM;

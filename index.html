@@ -1074,17 +1074,26 @@ function executeCPUBall(bt,isNoball){
   const isFreeHit=cpuFreehit&&!isNoball;
   if(isFreeHit)cpuFreehit=false;
 
-  // CPU picks a shot based on match situation — T20 mindset, always attacking
+  // CPU picks a shot based on match situation
   const ballsLeft=(matchOvers-cOver)*6+(6-cBall);
   const chasing=cpuTarget!==null;
   const deficit=chasing?Math.max(0,cpuTarget-cRuns):0;
   const rrRequired=ballsLeft>0?deficit/(ballsLeft/6):0;
   const r=Math.random();
   let shotIdx;
-  if(rrRequired>12||(!chasing&&ballsLeft<=4)) shotIdx=3;          // Six
-  else if(rrRequired>7||(!chasing&&ballsLeft<=8)) shotIdx=r<.6?3:2; // Six/Four
-  else if(rrRequired>4||!chasing) shotIdx=r<.35?3:r<.7?2:1;        // aggressive mix
-  else shotIdx=r<.25?3:r<.55?2:r<.85?1:0;                          // still attacking when chasing easy
+  if(chasing){
+    // calibrate aggression to what's actually needed
+    if(rrRequired>14)      shotIdx=3;                             // must six every ball
+    else if(rrRequired>10) shotIdx=r<.65?3:2;                    // mostly six
+    else if(rrRequired>7)  shotIdx=r<.35?3:r<.75?2:1;           // six/four mix
+    else if(rrRequired>4)  shotIdx=r<.15?3:r<.50?2:r<.85?1:0;  // measured
+    else                   shotIdx=r<.05?3:r<.25?2:r<.70?1:0;  // comfortable, no risks
+  } else {
+    // batting first — build sensibly, only accelerate at end
+    if(ballsLeft<=3)       shotIdx=r<.45?3:r<.80?2:1;           // death overs, go big
+    else if(ballsLeft<=6)  shotIdx=r<.20?3:r<.55?2:r<.85?1:0;  // push in last over
+    else                   shotIdx=r<.08?3:r<.28?2:r<.68?1:0;  // early overs, build
+  }
 
   const cpuShot=SHOTS[shotIdx];
   let w=cpuShot.bW*oversScalar*bt.wM;

@@ -442,6 +442,7 @@ body::before{
   <div class="ov-title" id="go-title">Match Over</div>
   <div class="ov-score" id="go-scores"></div>
   <div class="ov-sub" id="go-detail"></div>
+  <div id="go-cpu-form"></div>
   <button class="ov-btn" onclick="initGame()">New Match</button>
 </div>
 
@@ -1208,16 +1209,16 @@ function endMatch(winner){
     gd.textContent=`CPU: ${cRuns}/${cWkts} · You: ${pRuns}/${pWkts}`;
   }
   // Show CPU form warning for next match
+  const formEl=$('go-cpu-form');
+  formEl.style.cssText='margin-top:8px;font-size:.6rem;letter-spacing:1px;text-transform:uppercase;';
   if(nextBoost.label){
-    const warn=document.createElement('div');
-    warn.style.cssText='margin-top:8px;font-size:.6rem;letter-spacing:1px;color:#e74c3c;text-transform:uppercase;';
-    warn.textContent=`Next match: ${nextBoost.label}`;
-    $('go-detail').after(warn);
-  }else if(!playerWon){
-    const calm=document.createElement('div');
-    calm.style.cssText='margin-top:8px;font-size:.6rem;letter-spacing:1px;color:#58d68d;text-transform:uppercase;';
-    calm.textContent='CPU calms down — back to normal';
-    $('go-detail').after(calm);
+    formEl.style.color='#e74c3c';
+    formEl.textContent=`Next match: ${nextBoost.label}`;
+  }else if(playerWon&&streak===0){
+    formEl.textContent='';// was already normal
+  }else{
+    formEl.style.color='#58d68d';
+    formEl.textContent='CPU resets — back to normal';
   }
 }
 

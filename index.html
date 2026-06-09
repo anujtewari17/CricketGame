@@ -1111,7 +1111,6 @@ function executeCPUBall(bt,isNoball){
   }
 
   const cpuShot=SHOTS[shotIdx];
-  const boost=cpuFormBoost();
   let w=cpuShot.bW*oversScalar*bt.wM*boost.wMult;
   if(cpuConsecutiveSixes>0){
     const perSix=matchOvers===2?0.06:0.10;
